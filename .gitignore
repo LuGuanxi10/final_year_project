@@ -1,0 +1,8 @@
+*.pth
+*.pt
+*.bin
+ckpts/*.pth
+ckpts/*.pt
+ckpts/*.binckpts/*.bin
+ckpts/*.pt
+ckpts/*.pth

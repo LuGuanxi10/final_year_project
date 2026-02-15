@@ -1,0 +1,599 @@
+===== STARTING tmux-runner =====
+Date: Wed Oct 29 12:48:14 CST 2025
+Session: clip4clip_train
+LOG_FILE: ckpts/msrvtt_run/train_20251029_124814.log
+DATA_PATH: /root/autodl-tmp/Datasets/MSR-VTT
+
+Using python: /root/miniconda3/envs/clip4clip/bin/python
+Python 3.12.12
+Conda env packages (pip show ftfy):
+python executable: /root/miniconda3/envs/clip4clip/bin/python
+ftfy: 6.3.1 /root/miniconda3/envs/clip4clip/lib/python3.12/site-packages/ftfy/__init__.py
+
+torch.__version__= 2.9.0+cu128
+torch.version.cuda= 12.8
+cuda available= True
+cuda device count= 2
+device name 0: NVIDIA GeForce RTX 5090
+[main] LOCAL_RANK env -> args.local_rank = 0
+[main] LOCAL_RANK env -> args.local_rank = 1
+10/29/2025 12:48:21 - INFO -   Effective parameters:
+10/29/2025 12:48:21 - INFO -     <<< batch_size: 64
+10/29/2025 12:48:21 - INFO -     <<< batch_size_val: 64
+10/29/2025 12:48:21 - INFO -     <<< cache_dir: 
+10/29/2025 12:48:21 - INFO -     <<< coef_lr: 0.001
+10/29/2025 12:48:21 - INFO -     <<< cross_model: cross-base
+10/29/2025 12:48:21 - INFO -     <<< cross_num_hidden_layers: 4
+10/29/2025 12:48:21 - INFO -     <<< data_path: /root/autodl-tmp/Datasets/MSR-VTT/MSRVTT_data.json
+10/29/2025 12:48:21 - INFO -     <<< datatype: msrvtt
+10/29/2025 12:48:21 - INFO -     <<< do_eval: False
+10/29/2025 12:48:21 - INFO -     <<< do_lower_case: False
+10/29/2025 12:48:21 - INFO -     <<< do_pretrain: False
+10/29/2025 12:48:21 - INFO -     <<< do_train: True
+10/29/2025 12:48:21 - INFO -     <<< epochs: 5
+10/29/2025 12:48:21 - INFO -     <<< eval_frame_order: 0
+10/29/2025 12:48:21 - INFO -     <<< expand_msrvtt_sentences: True
+10/29/2025 12:48:21 - INFO -     <<< feature_framerate: 1
+10/29/2025 12:48:21 - INFO -     <<< features_path: /root/autodl-tmp/Datasets/MSR-VTT/MSRVTT_Videos
+10/29/2025 12:48:21 - INFO -     <<< fp16: False
+10/29/2025 12:48:21 - INFO -     <<< fp16_opt_level: O1
+10/29/2025 12:48:21 - INFO -     <<< freeze_layer_num: 0
+10/29/2025 12:48:21 - INFO -     <<< gradient_accumulation_steps: 1
+10/29/2025 12:48:21 - INFO -     <<< hard_negative_rate: 0.5
+10/29/2025 12:48:21 - INFO -     <<< init_model: None
+10/29/2025 12:48:21 - INFO -     <<< linear_patch: 2d
+10/29/2025 12:48:21 - INFO -     <<< local_rank: 0
+10/29/2025 12:48:21 - INFO -     <<< loose_type: True
+10/29/2025 12:48:21 - INFO -     <<< lr: 0.0001
+10/29/2025 12:48:21 - INFO -     <<< lr_decay: 0.9
+10/29/2025 12:48:21 - INFO -     <<< margin: 0.1
+10/29/2025 12:48:21 - INFO -     <<< max_frames: 12
+10/29/2025 12:48:21 - INFO -     <<< max_words: 32
+10/29/2025 12:48:21 - INFO -     <<< n_display: 50
+10/29/2025 12:48:21 - INFO -     <<< n_gpu: 1
+10/29/2025 12:48:21 - INFO -     <<< n_pair: 1
+10/29/2025 12:48:21 - INFO -     <<< negative_weighting: 1
+10/29/2025 12:48:21 - INFO -     <<< num_thread_reader: 8
+10/29/2025 12:48:21 - INFO -     <<< output_dir: ckpts/msrvtt_run
+10/29/2025 12:48:21 - INFO -     <<< pretrained_clip_name: ViT-B/32
+10/29/2025 12:48:21 - INFO -     <<< rank: 0
+10/29/2025 12:48:21 - INFO -     <<< resume_model: ckpts/msrvtt_run/pytorch_model.bin.0
+10/29/2025 12:48:21 - INFO -     <<< sampled_use_mil: False
+10/29/2025 12:48:21 - INFO -     <<< seed: 42
+10/29/2025 12:48:21 - INFO -     <<< sim_header: meanP
+10/29/2025 12:48:21 - INFO -     <<< slice_framepos: 2
+10/29/2025 12:48:21 - INFO -     <<< task_type: retrieval
+10/29/2025 12:48:21 - INFO -     <<< text_num_hidden_layers: 12
+10/29/2025 12:48:21 - INFO -     <<< train_csv: /root/autodl-tmp/Datasets/MSR-VTT/MSRVTT_train.9k.csv
+10/29/2025 12:48:21 - INFO -     <<< train_frame_order: 0
+10/29/2025 12:48:21 - INFO -     <<< use_mil: False
+10/29/2025 12:48:21 - INFO -     <<< val_csv: /root/autodl-tmp/Datasets/MSR-VTT/MSRVTT_JSFUSION_test.csv
+10/29/2025 12:48:21 - INFO -     <<< video_dim: 1024
+10/29/2025 12:48:21 - INFO -     <<< visual_num_hidden_layers: 12
+10/29/2025 12:48:21 - INFO -     <<< warmup_proportion: 0.1
+10/29/2025 12:48:21 - INFO -     <<< world_size: 2
+10/29/2025 12:48:21 - INFO -   device: cuda:0 n_gpu: 2
+10/29/2025 12:48:21 - INFO -   device: cuda:1 n_gpu: 2
+10/29/2025 12:48:21 - INFO -   loading archive file /root/autodl-tmp/CLIP4Clip_reproduce/modules/cross-base
+10/29/2025 12:48:21 - INFO -   Model config {
+  "attention_probs_dropout_prob": 0.1,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.1,
+  "hidden_size": 512,
+  "initializer_range": 0.02,
+  "intermediate_size": 2048,
+  "max_position_embeddings": 128,
+  "num_attention_heads": 8,
+  "num_hidden_layers": 4,
+  "type_vocab_size": 2,
+  "vocab_size": 512
+}
+
+10/29/2025 12:48:21 - INFO -   Weight doesn't exsits. /root/autodl-tmp/CLIP4Clip_reproduce/modules/cross-base/cross_pytorch_model.bin
+10/29/2025 12:48:21 - WARNING -   Stage-One:True, Stage-Two:False
+10/29/2025 12:48:21 - WARNING -   Test retrieval by loose type.
+10/29/2025 12:48:21 - WARNING -   	 embed_dim: 512
+10/29/2025 12:48:21 - WARNING -   	 image_resolution: 224
+10/29/2025 12:48:21 - WARNING -   	 vision_layers: 12
+10/29/2025 12:48:21 - WARNING -   	 vision_width: 768
+10/29/2025 12:48:21 - WARNING -   	 vision_patch_size: 32
+10/29/2025 12:48:21 - WARNING -   	 context_length: 77
+10/29/2025 12:48:21 - WARNING -   	 vocab_size: 49408
+10/29/2025 12:48:21 - WARNING -   	 transformer_width: 512
+10/29/2025 12:48:21 - WARNING -   	 transformer_heads: 8
+10/29/2025 12:48:21 - WARNING -   	 transformer_layers: 12
+10/29/2025 12:48:21 - WARNING -   		 linear_patch: 2d
+10/29/2025 12:48:21 - WARNING -   	 cut_top_layer: 0
+10/29/2025 12:48:22 - WARNING -   	 sim_header: meanP
+10/29/2025 12:48:25 - INFO -   --------------------
+10/29/2025 12:48:25 - INFO -   Weights from pretrained model not used in CLIP4Clip: 
+   clip.input_resolution
+   clip.context_length
+   clip.vocab_size
+10/29/2025 12:48:25 - INFO -   ***** Running test *****
+10/29/2025 12:48:25 - INFO -     Num examples = 1000
+10/29/2025 12:48:25 - INFO -     Batch size = 64
+10/29/2025 12:48:25 - INFO -     Num steps = 16
+10/29/2025 12:48:25 - INFO -   ***** Running val *****
+10/29/2025 12:48:25 - INFO -     Num examples = 1000
+autodl-container-5252488ad4-957edec5:5790:5790 [0] NCCL INFO Bootstrap: Using eth0:172.17.0.3<0>
+autodl-container-5252488ad4-957edec5:5790:5790 [0] NCCL INFO cudaDriverVersion 13000
+autodl-container-5252488ad4-957edec5:5790:5790 [0] NCCL INFO NCCL version 2.27.5+cuda12.9
+autodl-container-5252488ad4-957edec5:5790:5790 [0] NCCL INFO Comm config Blocking set to 1
+autodl-container-5252488ad4-957edec5:5791:5791 [1] NCCL INFO cudaDriverVersion 13000
+autodl-container-5252488ad4-957edec5:5791:5791 [1] NCCL INFO Bootstrap: Using eth0:172.17.0.3<0>
+autodl-container-5252488ad4-957edec5:5791:5791 [1] NCCL INFO NCCL version 2.27.5+cuda12.9
+autodl-container-5252488ad4-957edec5:5791:5791 [1] NCCL INFO Comm config Blocking set to 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO NCCL_IB_DISABLE set by environment to 1.
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO NET/Socket : Using [0]eth0:172.17.0.3<0>
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Initialized NET plugin Socket
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Assigned NET plugin Socket to comm
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Using network Socket
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO ncclCommInitRankConfig comm 0x1d1d1600 rank 0 nranks 2 cudaDev 0 nvmlDev 0 busId 27000 commId 0x279e060869b7abe4 - Init START
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO NET/Plugin: Could not find: libnccl-net.so. 
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO NCCL_IB_DISABLE set by environment to 1.
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO NET/Socket : Using [0]eth0:172.17.0.3<0>
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Initialized NET plugin Socket
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Assigned NET plugin Socket to comm
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Using network Socket
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO ncclCommInitRankConfig comm 0x18cb7580 rank 1 nranks 2 cudaDev 1 nvmlDev 1 busId 38000 commId 0x279e060869b7abe4 - Init START
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO RAS client listening socket at ::1<28028>
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO RAS client listening socket at ::1<28028>
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Bootstrap timings total 0.000598 (create 0.000019, send 0.000094, recv 0.000184, ring 0.000014, delay 0.000000)
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Bootstrap timings total 0.079658 (create 0.000020, send 0.000077, recv 0.079207, ring 0.000013, delay 0.000000)
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO NCCL_P2P_DISABLE set by environment to 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO NCCL_P2P_DISABLE set by environment to 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Setting affinity for GPU 0 to 0-51,104-155
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Setting affinity for GPU 1 to 0-51,104-155
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO comm 0x18cb7580 rank 1 nRanks 2 nNodes 1 localRanks 2 localRank 1 MNNVL 0
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO comm 0x1d1d1600 rank 0 nRanks 2 nNodes 1 localRanks 2 localRank 0 MNNVL 0
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Trees [0] -1/-1/-1->1->0 [1] 0/-1/-1->1->-1 [2] -1/-1/-1->1->0 [3] 0/-1/-1->1->-1
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO P2P Chunksize set to 131072
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Channel 00/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Channel 01/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Channel 02/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Channel 03/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] -1/-1/-1->0->1 [2] 1/-1/-1->0->-1 [3] -1/-1/-1->0->1
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO P2P Chunksize set to 131072
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+autodl-container-5252488ad4-957edec5:5791:6037 [1] NCCL INFO [Proxy Service UDS] Device 1 CPU core 144
+autodl-container-5252488ad4-957edec5:5791:6036 [1] NCCL INFO [Proxy Service] Device 1 CPU core 37
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO PROFILER/Plugin: Could not find: libnccl-profiler.so. 
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Check P2P Type isAllDirectP2p 0 directMode 0
+autodl-container-5252488ad4-957edec5:5790:6038 [0] NCCL INFO [Proxy Service] Device 0 CPU core 1
+autodl-container-5252488ad4-957edec5:5790:6039 [0] NCCL INFO [Proxy Service UDS] Device 0 CPU core 2
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO 4 coll channels, 4 collnet channels, 0 nvls channels, 4 p2p channels, 2 p2p channels per peer
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO 4 coll channels, 4 collnet channels, 0 nvls channels, 4 p2p channels, 2 p2p channels per peer
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO CC Off, workFifoBytes 1048576
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO ncclCommInitRankConfig comm 0x18cb7580 rank 1 nranks 2 cudaDev 1 nvmlDev 1 busId 38000 commId 0x279e060869b7abe4 - Init COMPLETE
+autodl-container-5252488ad4-957edec5:5791:6033 [1] NCCL INFO Init timings - ncclCommInitRankConfig: rank 1 nranks 2 total 0.25 (kernels 0.24, alloc 0.00, bootstrap 0.00, allgathers 0.00, topo 0.01, graphs 0.00, connections 0.00, rest 0.00)
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO TUNER/Plugin: Could not find: libnccl-tuner.so. Using internal tuner plugin.
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO ncclCommInitRankConfig comm 0x1d1d1600 rank 0 nranks 2 cudaDev 0 nvmlDev 0 busId 27000 commId 0x279e060869b7abe4 - Init COMPLETE
+autodl-container-5252488ad4-957edec5:5790:6032 [0] NCCL INFO Init timings - ncclCommInitRankConfig: rank 0 nranks 2 total 0.33 (kernels 0.24, alloc 0.00, bootstrap 0.08, allgathers 0.00, topo 0.01, graphs 0.00, connections 0.00, rest 0.00)
+autodl-container-5252488ad4-957edec5:5790:6041 [0] NCCL INFO Channel 00 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5791:6040 [1] NCCL INFO Channel 00 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:6041 [0] NCCL INFO Channel 01 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5791:6040 [1] NCCL INFO Channel 01 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:6041 [0] NCCL INFO Channel 02 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5791:6040 [1] NCCL INFO Channel 02 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:6041 [0] NCCL INFO Channel 03 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5791:6040 [1] NCCL INFO Channel 03 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5791:6040 [1] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+autodl-container-5252488ad4-957edec5:5790:6041 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+10/29/2025 12:48:31 - INFO -   ***** Running training *****
+10/29/2025 12:48:31 - INFO -     Num examples = 180000
+10/29/2025 12:48:31 - INFO -     Batch size = 64
+10/29/2025 12:48:31 - INFO -     Num steps = 14060
+=> Loading checkpoint from ckpts/msrvtt_run/pytorch_model.bin.0
+=> Loading checkpoint from ckpts/msrvtt_run/pytorch_model.bin.0
+=> Model weights loaded (raw state_dict).
+=> No optimizer state in checkpoint. Starting new optimizer.
+=> No epoch stored in checkpoint. Starting from epoch 1
+=> Model weights loaded (raw state_dict).
+=> No optimizer state in checkpoint. Starting new optimizer.
+=> No epoch stored in checkpoint. Starting from epoch 1
+/root/miniconda3/envs/clip4clip/lib/python3.12/site-packages/torch/distributed/distributed_c10d.py:4876: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  warnings.warn(  # warn only once
+[rank0]:[W1029 12:49:04.920581486 reducer.cpp:1431] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank1]:[W1029 12:49:04.927343096 reducer.cpp:1431] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+/root/autodl-tmp/CLIP4Clip_reproduce/main_task_retrieval.py:317: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+  total_loss += float(loss)
+/root/autodl-tmp/CLIP4Clip_reproduce/main_task_retrieval.py:317: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+  total_loss += float(loss)
+10/29/2025 12:51:57 - INFO -   Epoch: 2/5, Step: 50/2812, Lr: , Loss: 1.139155, Time/step: 4.105436
+10/29/2025 12:54:51 - INFO -   Epoch: 2/5, Step: 100/2812, Lr: , Loss: 1.685257, Time/step: 3.480180
+10/29/2025 12:57:39 - INFO -   Epoch: 2/5, Step: 150/2812, Lr: , Loss: 0.935683, Time/step: 3.366014
+10/29/2025 13:00:28 - INFO -   Epoch: 2/5, Step: 200/2812, Lr: , Loss: 1.227534, Time/step: 3.377998
+10/29/2025 13:03:33 - INFO -   Epoch: 2/5, Step: 250/2812, Lr: , Loss: 0.928089, Time/step: 3.697235
+10/29/2025 13:06:26 - INFO -   Epoch: 2/5, Step: 300/2812, Lr: , Loss: 1.010375, Time/step: 3.459351
+10/29/2025 13:09:17 - INFO -   Epoch: 2/5, Step: 350/2812, Lr: , Loss: 1.213761, Time/step: 3.425984
+10/29/2025 13:12:08 - INFO -   Epoch: 2/5, Step: 400/2812, Lr: , Loss: 0.943953, Time/step: 3.410664
+10/29/2025 13:15:17 - INFO -   Epoch: 2/5, Step: 450/2812, Lr: , Loss: 0.725219, Time/step: 3.791873
+10/29/2025 13:17:59 - INFO -   Epoch: 2/5, Step: 500/2812, Lr: , Loss: 1.084955, Time/step: 3.223576
+10/29/2025 13:20:46 - INFO -   Epoch: 2/5, Step: 550/2812, Lr: , Loss: 0.828120, Time/step: 3.352509
+10/29/2025 13:23:40 - INFO -   Epoch: 2/5, Step: 600/2812, Lr: , Loss: 1.086096, Time/step: 3.476800
+10/29/2025 13:26:53 - INFO -   Epoch: 2/5, Step: 650/2812, Lr: , Loss: 0.903937, Time/step: 3.862668
+10/29/2025 13:29:30 - INFO -   Epoch: 2/5, Step: 700/2812, Lr: , Loss: 0.687455, Time/step: 3.136600
+10/29/2025 13:32:36 - INFO -   Epoch: 2/5, Step: 750/2812, Lr: , Loss: 0.912052, Time/step: 3.727998
+10/29/2025 13:35:25 - INFO -   Epoch: 2/5, Step: 800/2812, Lr: , Loss: 0.704283, Time/step: 3.362928
+10/29/2025 13:38:17 - INFO -   Epoch: 2/5, Step: 850/2812, Lr: , Loss: 0.704175, Time/step: 3.445250
+10/29/2025 13:40:55 - INFO -   Epoch: 2/5, Step: 900/2812, Lr: , Loss: 0.615552, Time/step: 3.171715
+10/29/2025 13:44:17 - INFO -   Epoch: 2/5, Step: 950/2812, Lr: , Loss: 0.852049, Time/step: 4.039446
+10/29/2025 13:47:06 - INFO -   Epoch: 2/5, Step: 1000/2812, Lr: , Loss: 0.885071, Time/step: 3.379750
+10/29/2025 13:49:51 - INFO -   Epoch: 2/5, Step: 1050/2812, Lr: , Loss: 0.793024, Time/step: 3.294166
+10/29/2025 13:52:32 - INFO -   Epoch: 2/5, Step: 1100/2812, Lr: , Loss: 0.579051, Time/step: 3.227998
+10/29/2025 13:55:29 - INFO -   Epoch: 2/5, Step: 1150/2812, Lr: , Loss: 0.676927, Time/step: 3.538714
+10/29/2025 13:58:33 - INFO -   Epoch: 2/5, Step: 1200/2812, Lr: , Loss: 0.838994, Time/step: 3.672083
+10/29/2025 14:01:25 - INFO -   Epoch: 2/5, Step: 1250/2812, Lr: , Loss: 0.916749, Time/step: 3.449165
+10/29/2025 14:04:13 - INFO -   Epoch: 2/5, Step: 1300/2812, Lr: , Loss: 0.688125, Time/step: 3.348021
+10/29/2025 14:07:25 - INFO -   Epoch: 2/5, Step: 1350/2812, Lr: , Loss: 0.679329, Time/step: 3.848937
+10/29/2025 14:10:18 - INFO -   Epoch: 2/5, Step: 1400/2812, Lr: , Loss: 0.487129, Time/step: 3.447247
+10/29/2025 14:12:53 - INFO -   Epoch: 2/5, Step: 1450/2812, Lr: , Loss: 0.572796, Time/step: 3.109560
+10/29/2025 14:15:50 - INFO -   Epoch: 2/5, Step: 1500/2812, Lr: , Loss: 0.814747, Time/step: 3.543062
+10/29/2025 14:18:48 - INFO -   Epoch: 2/5, Step: 1550/2812, Lr: , Loss: 0.396993, Time/step: 3.555753
+10/29/2025 14:21:41 - INFO -   Epoch: 2/5, Step: 1600/2812, Lr: , Loss: 0.488886, Time/step: 3.460028
+10/29/2025 14:24:35 - INFO -   Epoch: 2/5, Step: 1650/2812, Lr: , Loss: 0.734712, Time/step: 3.485449
+10/29/2025 14:27:39 - INFO -   Epoch: 2/5, Step: 1700/2812, Lr: , Loss: 0.720345, Time/step: 3.677164
+10/29/2025 14:30:50 - INFO -   Epoch: 2/5, Step: 1750/2812, Lr: , Loss: 0.588116, Time/step: 3.808951
+10/29/2025 14:33:36 - INFO -   Epoch: 2/5, Step: 1800/2812, Lr: , Loss: 0.497113, Time/step: 3.333279
+10/29/2025 14:36:26 - INFO -   Epoch: 2/5, Step: 1850/2812, Lr: , Loss: 0.787121, Time/step: 3.384098
+10/29/2025 14:39:21 - INFO -   Epoch: 2/5, Step: 1900/2812, Lr: , Loss: 0.778143, Time/step: 3.498065
+10/29/2025 14:42:32 - INFO -   Epoch: 2/5, Step: 1950/2812, Lr: , Loss: 0.791687, Time/step: 3.827912
+10/29/2025 14:45:19 - INFO -   Epoch: 2/5, Step: 2000/2812, Lr: , Loss: 0.698367, Time/step: 3.338060
+10/29/2025 14:48:06 - INFO -   Epoch: 2/5, Step: 2050/2812, Lr: , Loss: 0.576956, Time/step: 3.342202
+10/29/2025 14:51:05 - INFO -   Epoch: 2/5, Step: 2100/2812, Lr: , Loss: 0.384922, Time/step: 3.577210
+10/29/2025 14:53:59 - INFO -   Epoch: 2/5, Step: 2150/2812, Lr: , Loss: 0.438013, Time/step: 3.478881
+10/29/2025 14:56:51 - INFO -   Epoch: 2/5, Step: 2200/2812, Lr: , Loss: 0.597486, Time/step: 3.445234
+10/29/2025 14:59:44 - INFO -   Epoch: 2/5, Step: 2250/2812, Lr: , Loss: 0.370981, Time/step: 3.461938
+10/29/2025 15:02:47 - INFO -   Epoch: 2/5, Step: 2300/2812, Lr: , Loss: 0.531968, Time/step: 3.651900
+10/29/2025 15:05:34 - INFO -   Epoch: 2/5, Step: 2350/2812, Lr: , Loss: 0.731869, Time/step: 3.348071
+10/29/2025 15:08:25 - INFO -   Epoch: 2/5, Step: 2400/2812, Lr: , Loss: 0.483066, Time/step: 3.416650
+10/29/2025 15:10:37 - INFO -   Epoch: 2/5, Step: 2450/2812, Lr: , Loss: 0.551195, Time/step: 2.648033
+10/29/2025 15:12:43 - INFO -   Epoch: 2/5, Step: 2500/2812, Lr: , Loss: 0.291521, Time/step: 2.505196
+10/29/2025 15:14:57 - INFO -   Epoch: 2/5, Step: 2550/2812, Lr: , Loss: 0.592750, Time/step: 2.685059
+10/29/2025 15:17:00 - INFO -   Epoch: 2/5, Step: 2600/2812, Lr: , Loss: 0.752681, Time/step: 2.455582
+10/29/2025 15:19:00 - INFO -   Epoch: 2/5, Step: 2650/2812, Lr: , Loss: 0.495602, Time/step: 2.399448
+10/29/2025 15:21:03 - INFO -   Epoch: 2/5, Step: 2700/2812, Lr: , Loss: 0.588172, Time/step: 2.462493
+10/29/2025 15:23:16 - INFO -   Epoch: 2/5, Step: 2750/2812, Lr: , Loss: 0.780056, Time/step: 2.671590
+10/29/2025 15:24:59 - INFO -   Epoch: 2/5, Step: 2800/2812, Lr: , Loss: 0.607749, Time/step: 2.062245
+10/29/2025 15:25:17 - INFO -   Epoch 2/5 Finished, Train Loss: 0.720717
+10/29/2025 15:25:18 - INFO -   Model saved to ckpts/msrvtt_run/pytorch_model.bin.1
+10/29/2025 15:25:18 - INFO -   Optimizer saved to ckpts/msrvtt_run/pytorch_opt.bin.1
+0/16
+1/16
+2/16
+3/16
+4/16
+5/16
+6/16
+7/16
+8/16
+9/16
+10/16
+11/16
+12/16
+13/16
+14/16
+15/16
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Assigned NET plugin Socket to comm
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Using network Socket
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO ncclCommInitAll comm 0x527ddb70 rank 0 nranks 2 cudaDev 0 nvmlDev 0 busId 27000 commId 0x6ae08f39b4fcd264 - Init START
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO Assigned NET plugin Socket to comm
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO Using network Socket
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO ncclCommInitAll comm 0x528eb5a0 rank 1 nranks 2 cudaDev 1 nvmlDev 1 busId 38000 commId 0x6ae08f39b4fcd264 - Init START
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO Bootstrap timings total 0.000883 (create 0.000032, send 0.000087, recv 0.000297, ring 0.000029, delay 0.000000)
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Bootstrap timings total 0.704295 (create 0.000055, send 0.000202, recv 0.703872, ring 0.000015, delay 0.000000)
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO Setting affinity for GPU 1 to 0-51,104-155
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Setting affinity for GPU 0 to 0-51,104-155
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO comm 0x528eb5a0 rank 1 nRanks 2 nNodes 1 localRanks 2 localRank 1 MNNVL 0
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO comm 0x527ddb70 rank 0 nRanks 2 nNodes 1 localRanks 2 localRank 0 MNNVL 0
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO Trees [0] -1/-1/-1->1->0 [1] 0/-1/-1->1->-1 [2] -1/-1/-1->1->0 [3] 0/-1/-1->1->-1
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO P2P Chunksize set to 131072
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Channel 00/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Channel 01/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Channel 02/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Channel 03/04 : 0 1
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] -1/-1/-1->0->1 [2] 1/-1/-1->0->-1 [3] -1/-1/-1->0->1
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO P2P Chunksize set to 131072
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Check P2P Type isAllDirectP2p 0 directMode 1
+autodl-container-5252488ad4-957edec5:5790:917985 [1] NCCL INFO [Proxy Service] Device 1 CPU core 29
+autodl-container-5252488ad4-957edec5:5790:917986 [0] NCCL INFO [Proxy Service] Device 0 CPU core 5
+autodl-container-5252488ad4-957edec5:5790:917987 [1] NCCL INFO [Proxy Service UDS] Device 1 CPU core 37
+autodl-container-5252488ad4-957edec5:5790:917988 [0] NCCL INFO [Proxy Service UDS] Device 0 CPU core 14
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO 4 coll channels, 4 collnet channels, 0 nvls channels, 4 p2p channels, 2 p2p channels per peer
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO CC Off, workFifoBytes 1048576
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO threadThresholds 8/8/64 | 16/8/64 | 512 | 512
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO 4 coll channels, 4 collnet channels, 0 nvls channels, 4 p2p channels, 2 p2p channels per peer
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO ncclCommInitAll comm 0x527ddb70 rank 0 nranks 2 cudaDev 0 nvmlDev 0 busId 27000 commId 0x6ae08f39b4fcd264 - Init COMPLETE
+autodl-container-5252488ad4-957edec5:5790:917983 [0] NCCL INFO Init timings - ncclCommInitAll: rank 0 nranks 2 total 0.73 (kernels 0.00, alloc 0.00, bootstrap 0.70, allgathers 0.00, topo 0.01, graphs 0.00, connections 0.00, rest 0.01)
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO ncclCommInitAll comm 0x528eb5a0 rank 1 nranks 2 cudaDev 1 nvmlDev 1 busId 38000 commId 0x6ae08f39b4fcd264 - Init COMPLETE
+autodl-container-5252488ad4-957edec5:5790:917984 [1] NCCL INFO Init timings - ncclCommInitAll: rank 1 nranks 2 total 0.73 (kernels 0.70, alloc 0.00, bootstrap 0.00, allgathers 0.00, topo 0.01, graphs 0.00, connections 0.01, rest 0.00)
+autodl-container-5252488ad4-957edec5:5790:917989 [1] NCCL INFO Channel 00 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917989 [1] NCCL INFO Channel 01 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917990 [0] NCCL INFO Channel 00 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917989 [1] NCCL INFO Channel 02 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917990 [0] NCCL INFO Channel 01 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917989 [1] NCCL INFO Channel 03 : 1[1] -> 0[0] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917990 [0] NCCL INFO Channel 02 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917990 [0] NCCL INFO Channel 03 : 0[0] -> 1[1] via SHM/direct/direct
+autodl-container-5252488ad4-957edec5:5790:917989 [1] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+autodl-container-5252488ad4-957edec5:5790:917990 [0] NCCL INFO Connected all rings, use ring PXN 0 GDR 1
+10/29/2025 15:26:24 - INFO -   sim matrix size: 1000, 1000
+10/29/2025 15:26:24 - INFO -   	 Length-T: 1000, Length-V:1000
+10/29/2025 15:26:24 - INFO -   Text-to-Video:
+10/29/2025 15:26:24 - INFO -   	>>>  R@1: 42.1 - R@5: 69.9 - R@10: 80.3 - Median R: 2.0 - Mean R: 16.7
+10/29/2025 15:26:24 - INFO -   Video-to-Text:
+10/29/2025 15:26:24 - INFO -   	>>>  V2T$R@1: 41.3 - V2T$R@5: 70.9 - V2T$R@10: 80.6 - V2T$Median R: 2.0 - V2T$Mean R: 12.8
+10/29/2025 15:26:24 - INFO -   The best model is: ckpts/msrvtt_run/pytorch_model.bin.1, the R1 is: 42.1000
+10/29/2025 15:27:43 - INFO -   Epoch: 3/5, Step: 38/2812, Lr: , Loss: 0.550097, Time/step: 1.581609
+10/29/2025 15:29:12 - INFO -   Epoch: 3/5, Step: 88/2812, Lr: , Loss: 0.401396, Time/step: 1.770164
+10/29/2025 15:31:01 - INFO -   Epoch: 3/5, Step: 138/2812, Lr: , Loss: 0.559077, Time/step: 2.199366
+10/29/2025 15:32:34 - INFO -   Epoch: 3/5, Step: 188/2812, Lr: , Loss: 0.399937, Time/step: 1.849851
+10/29/2025 15:34:02 - INFO -   Epoch: 3/5, Step: 238/2812, Lr: , Loss: 0.297456, Time/step: 1.752457
+10/29/2025 15:35:33 - INFO -   Epoch: 3/5, Step: 288/2812, Lr: , Loss: 0.399116, Time/step: 1.826775
+10/29/2025 15:37:15 - INFO -   Epoch: 3/5, Step: 338/2812, Lr: , Loss: 0.469548, Time/step: 2.043192
+10/29/2025 15:38:49 - INFO -   Epoch: 3/5, Step: 388/2812, Lr: , Loss: 0.824479, Time/step: 1.869992
+10/29/2025 15:40:23 - INFO -   Epoch: 3/5, Step: 438/2812, Lr: , Loss: 0.351660, Time/step: 1.897033
+10/29/2025 15:42:04 - INFO -   Epoch: 3/5, Step: 488/2812, Lr: , Loss: 0.391729, Time/step: 2.003776
+10/29/2025 15:43:41 - INFO -   Epoch: 3/5, Step: 538/2812, Lr: , Loss: 0.465889, Time/step: 1.939500
+10/29/2025 15:45:16 - INFO -   Epoch: 3/5, Step: 588/2812, Lr: , Loss: 0.345407, Time/step: 1.904263
+10/29/2025 15:46:45 - INFO -   Epoch: 3/5, Step: 638/2812, Lr: , Loss: 0.279744, Time/step: 1.782074
+10/29/2025 15:48:24 - INFO -   Epoch: 3/5, Step: 688/2812, Lr: , Loss: 0.667252, Time/step: 1.986294
+10/29/2025 15:50:21 - INFO -   Epoch: 3/5, Step: 738/2812, Lr: , Loss: 0.275272, Time/step: 2.336535
+10/29/2025 15:52:25 - INFO -   Epoch: 3/5, Step: 788/2812, Lr: , Loss: 0.339917, Time/step: 2.476522
+10/29/2025 15:54:22 - INFO -   Epoch: 3/5, Step: 838/2812, Lr: , Loss: 0.670799, Time/step: 2.340780
+10/29/2025 15:56:30 - INFO -   Epoch: 3/5, Step: 888/2812, Lr: , Loss: 0.510911, Time/step: 2.561638
+10/29/2025 15:58:41 - INFO -   Epoch: 3/5, Step: 938/2812, Lr: , Loss: 0.543365, Time/step: 2.618979
+10/29/2025 16:00:46 - INFO -   Epoch: 3/5, Step: 988/2812, Lr: , Loss: 0.290253, Time/step: 2.500204
+10/29/2025 16:02:42 - INFO -   Epoch: 3/5, Step: 1038/2812, Lr: , Loss: 0.328498, Time/step: 2.328823
+10/29/2025 16:04:32 - INFO -   Epoch: 3/5, Step: 1088/2812, Lr: , Loss: 0.330776, Time/step: 2.199529
+10/29/2025 16:06:27 - INFO -   Epoch: 3/5, Step: 1138/2812, Lr: , Loss: 0.240551, Time/step: 2.283869
+10/29/2025 16:08:37 - INFO -   Epoch: 3/5, Step: 1188/2812, Lr: , Loss: 0.293543, Time/step: 2.606669
+10/29/2025 16:10:45 - INFO -   Epoch: 3/5, Step: 1238/2812, Lr: , Loss: 0.372309, Time/step: 2.560329
+10/29/2025 16:12:58 - INFO -   Epoch: 3/5, Step: 1288/2812, Lr: , Loss: 0.164041, Time/step: 2.658160
+10/29/2025 16:14:59 - INFO -   Epoch: 3/5, Step: 1338/2812, Lr: , Loss: 0.370389, Time/step: 2.421168
+10/29/2025 16:16:48 - INFO -   Epoch: 3/5, Step: 1388/2812, Lr: , Loss: 0.648285, Time/step: 2.177474
+10/29/2025 16:18:34 - INFO -   Epoch: 3/5, Step: 1438/2812, Lr: , Loss: 0.196824, Time/step: 2.118903
+10/29/2025 16:20:49 - INFO -   Epoch: 3/5, Step: 1488/2812, Lr: , Loss: 0.430700, Time/step: 2.701732
+10/29/2025 16:22:40 - INFO -   Epoch: 3/5, Step: 1538/2812, Lr: , Loss: 0.275493, Time/step: 2.231417
+10/29/2025 16:24:50 - INFO -   Epoch: 3/5, Step: 1588/2812, Lr: , Loss: 0.597149, Time/step: 2.596701
+10/29/2025 16:26:48 - INFO -   Epoch: 3/5, Step: 1638/2812, Lr: , Loss: 0.330262, Time/step: 2.347447
+10/29/2025 16:28:30 - INFO -   Epoch: 3/5, Step: 1688/2812, Lr: , Loss: 0.371554, Time/step: 2.045832
+10/29/2025 16:30:17 - INFO -   Epoch: 3/5, Step: 1738/2812, Lr: , Loss: 0.346811, Time/step: 2.150222
+10/29/2025 16:32:23 - INFO -   Epoch: 3/5, Step: 1788/2812, Lr: , Loss: 0.493938, Time/step: 2.521529
+10/29/2025 16:34:43 - INFO -   Epoch: 3/5, Step: 1838/2812, Lr: , Loss: 0.352664, Time/step: 2.780683
+10/29/2025 16:36:36 - INFO -   Epoch: 3/5, Step: 1888/2812, Lr: , Loss: 0.253324, Time/step: 2.275162
+10/29/2025 16:38:31 - INFO -   Epoch: 3/5, Step: 1938/2812, Lr: , Loss: 0.370615, Time/step: 2.287907
+10/29/2025 16:40:27 - INFO -   Epoch: 3/5, Step: 1988/2812, Lr: , Loss: 0.425207, Time/step: 2.317192
+10/29/2025 16:42:41 - INFO -   Epoch: 3/5, Step: 2038/2812, Lr: , Loss: 0.433684, Time/step: 2.689203
+10/29/2025 16:44:40 - INFO -   Epoch: 3/5, Step: 2088/2812, Lr: , Loss: 0.288844, Time/step: 2.380877
+10/29/2025 16:46:32 - INFO -   Epoch: 3/5, Step: 2138/2812, Lr: , Loss: 0.269097, Time/step: 2.239744
+10/29/2025 16:48:20 - INFO -   Epoch: 3/5, Step: 2188/2812, Lr: , Loss: 0.446951, Time/step: 2.161484
+10/29/2025 16:50:31 - INFO -   Epoch: 3/5, Step: 2238/2812, Lr: , Loss: 0.511924, Time/step: 2.614088
+10/29/2025 16:52:36 - INFO -   Epoch: 3/5, Step: 2288/2812, Lr: , Loss: 0.783888, Time/step: 2.504726
+10/29/2025 16:54:42 - INFO -   Epoch: 3/5, Step: 2338/2812, Lr: , Loss: 0.362971, Time/step: 2.511350
+10/29/2025 16:56:42 - INFO -   Epoch: 3/5, Step: 2388/2812, Lr: , Loss: 0.465796, Time/step: 2.407950
+10/29/2025 16:58:58 - INFO -   Epoch: 3/5, Step: 2438/2812, Lr: , Loss: 0.557527, Time/step: 2.718349
+10/29/2025 17:00:58 - INFO -   Epoch: 3/5, Step: 2488/2812, Lr: , Loss: 0.220172, Time/step: 2.392648
+10/29/2025 17:02:51 - INFO -   Epoch: 3/5, Step: 2538/2812, Lr: , Loss: 0.429391, Time/step: 2.270372
+10/29/2025 17:04:58 - INFO -   Epoch: 3/5, Step: 2588/2812, Lr: , Loss: 0.272625, Time/step: 2.530782
+10/29/2025 17:07:13 - INFO -   Epoch: 3/5, Step: 2638/2812, Lr: , Loss: 0.438906, Time/step: 2.705072
+10/29/2025 17:09:15 - INFO -   Epoch: 3/5, Step: 2688/2812, Lr: , Loss: 0.643550, Time/step: 2.442580
+10/29/2025 17:11:16 - INFO -   Epoch: 3/5, Step: 2738/2812, Lr: , Loss: 0.287079, Time/step: 2.427270
+10/29/2025 17:13:17 - INFO -   Epoch: 3/5, Step: 2788/2812, Lr: , Loss: 0.413603, Time/step: 2.405259
+10/29/2025 17:14:11 - INFO -   Epoch 3/5 Finished, Train Loss: 0.411787
+10/29/2025 17:14:12 - INFO -   Model saved to ckpts/msrvtt_run/pytorch_model.bin.2
+10/29/2025 17:14:12 - INFO -   Optimizer saved to ckpts/msrvtt_run/pytorch_opt.bin.2
+0/16
+1/16
+2/16
+3/16
+4/16
+5/16
+6/16
+7/16
+8/16
+9/16
+10/16
+11/16
+12/16
+13/16
+14/16
+15/16
+10/29/2025 17:15:31 - INFO -   sim matrix size: 1000, 1000
+10/29/2025 17:15:31 - INFO -   	 Length-T: 1000, Length-V:1000
+10/29/2025 17:15:31 - INFO -   Text-to-Video:
+10/29/2025 17:15:31 - INFO -   	>>>  R@1: 41.4 - R@5: 70.4 - R@10: 80.6 - Median R: 2.0 - Mean R: 15.3
+10/29/2025 17:15:31 - INFO -   Video-to-Text:
+10/29/2025 17:15:31 - INFO -   	>>>  V2T$R@1: 42.8 - V2T$R@5: 71.2 - V2T$R@10: 80.8 - V2T$Median R: 2.0 - V2T$Mean R: 10.8
+10/29/2025 17:15:31 - INFO -   The best model is: ckpts/msrvtt_run/pytorch_model.bin.1, the R1 is: 42.1000
+10/29/2025 17:16:54 - INFO -   Epoch: 4/5, Step: 26/2812, Lr: , Loss: 0.341492, Time/step: 1.644262
+10/29/2025 17:18:49 - INFO -   Epoch: 4/5, Step: 76/2812, Lr: , Loss: 0.149873, Time/step: 2.314658
+10/29/2025 17:20:51 - INFO -   Epoch: 4/5, Step: 126/2812, Lr: , Loss: 0.177589, Time/step: 2.435467
+10/29/2025 17:23:00 - INFO -   Epoch: 4/5, Step: 176/2812, Lr: , Loss: 0.310638, Time/step: 2.576672
+10/29/2025 17:25:00 - INFO -   Epoch: 4/5, Step: 226/2812, Lr: , Loss: 0.389961, Time/step: 2.407890
+10/29/2025 17:27:06 - INFO -   Epoch: 4/5, Step: 276/2812, Lr: , Loss: 0.235562, Time/step: 2.509921
+10/29/2025 17:29:11 - INFO -   Epoch: 4/5, Step: 326/2812, Lr: , Loss: 0.241741, Time/step: 2.507294
+10/29/2025 17:31:17 - INFO -   Epoch: 4/5, Step: 376/2812, Lr: , Loss: 0.210095, Time/step: 2.522668
+10/29/2025 17:33:19 - INFO -   Epoch: 4/5, Step: 426/2812, Lr: , Loss: 0.319064, Time/step: 2.441139
+10/29/2025 17:35:19 - INFO -   Epoch: 4/5, Step: 476/2812, Lr: , Loss: 0.355439, Time/step: 2.384085
+10/29/2025 17:37:24 - INFO -   Epoch: 4/5, Step: 526/2812, Lr: , Loss: 0.243009, Time/step: 2.511080
+10/29/2025 17:39:28 - INFO -   Epoch: 4/5, Step: 576/2812, Lr: , Loss: 0.432906, Time/step: 2.469944
+10/29/2025 17:41:19 - INFO -   Epoch: 4/5, Step: 626/2812, Lr: , Loss: 0.232808, Time/step: 2.229747
+10/29/2025 17:43:04 - INFO -   Epoch: 4/5, Step: 676/2812, Lr: , Loss: 0.198074, Time/step: 2.088141
+10/29/2025 17:44:51 - INFO -   Epoch: 4/5, Step: 726/2812, Lr: , Loss: 0.358320, Time/step: 2.151971
+10/29/2025 17:46:55 - INFO -   Epoch: 4/5, Step: 776/2812, Lr: , Loss: 0.334516, Time/step: 2.474878
+10/29/2025 17:48:43 - INFO -   Epoch: 4/5, Step: 826/2812, Lr: , Loss: 0.270500, Time/step: 2.165399
+10/29/2025 17:50:35 - INFO -   Epoch: 4/5, Step: 876/2812, Lr: , Loss: 0.099040, Time/step: 2.241146
+10/29/2025 17:52:40 - INFO -   Epoch: 4/5, Step: 926/2812, Lr: , Loss: 0.241276, Time/step: 2.493640
+10/29/2025 17:54:42 - INFO -   Epoch: 4/5, Step: 976/2812, Lr: , Loss: 0.081428, Time/step: 2.437839
+10/29/2025 17:56:58 - INFO -   Epoch: 4/5, Step: 1026/2812, Lr: , Loss: 0.253698, Time/step: 2.724766
+10/29/2025 17:59:00 - INFO -   Epoch: 4/5, Step: 1076/2812, Lr: , Loss: 0.407308, Time/step: 2.431728
+10/29/2025 18:01:16 - INFO -   Epoch: 4/5, Step: 1126/2812, Lr: , Loss: 0.321740, Time/step: 2.723508
+10/29/2025 18:03:21 - INFO -   Epoch: 4/5, Step: 1176/2812, Lr: , Loss: 0.246872, Time/step: 2.498456
+10/29/2025 18:05:29 - INFO -   Epoch: 4/5, Step: 1226/2812, Lr: , Loss: 0.313094, Time/step: 2.560101
+10/29/2025 18:07:28 - INFO -   Epoch: 4/5, Step: 1276/2812, Lr: , Loss: 0.238641, Time/step: 2.391026
+10/29/2025 18:09:53 - INFO -   Epoch: 4/5, Step: 1326/2812, Lr: , Loss: 0.131957, Time/step: 2.885122
+10/29/2025 18:11:54 - INFO -   Epoch: 4/5, Step: 1376/2812, Lr: , Loss: 0.263110, Time/step: 2.424099
+10/29/2025 18:14:04 - INFO -   Epoch: 4/5, Step: 1426/2812, Lr: , Loss: 0.133247, Time/step: 2.603061
+10/29/2025 18:16:11 - INFO -   Epoch: 4/5, Step: 1476/2812, Lr: , Loss: 0.132420, Time/step: 2.536892
+10/29/2025 18:18:20 - INFO -   Epoch: 4/5, Step: 1526/2812, Lr: , Loss: 0.260831, Time/step: 2.594599
+10/29/2025 18:20:15 - INFO -   Epoch: 4/5, Step: 1576/2812, Lr: , Loss: 0.243019, Time/step: 2.285514
+10/29/2025 18:22:06 - INFO -   Epoch: 4/5, Step: 1626/2812, Lr: , Loss: 0.352522, Time/step: 2.231823
+10/29/2025 18:24:08 - INFO -   Epoch: 4/5, Step: 1676/2812, Lr: , Loss: 0.149095, Time/step: 2.431275
+10/29/2025 18:26:30 - INFO -   Epoch: 4/5, Step: 1726/2812, Lr: , Loss: 0.147713, Time/step: 2.843761
+10/29/2025 18:28:37 - INFO -   Epoch: 4/5, Step: 1776/2812, Lr: , Loss: 0.265071, Time/step: 2.534492
+10/29/2025 18:30:40 - INFO -   Epoch: 4/5, Step: 1826/2812, Lr: , Loss: 0.184163, Time/step: 2.470777
+10/29/2025 18:32:40 - INFO -   Epoch: 4/5, Step: 1876/2812, Lr: , Loss: 0.192669, Time/step: 2.397099
+10/29/2025 18:34:57 - INFO -   Epoch: 4/5, Step: 1926/2812, Lr: , Loss: 0.203689, Time/step: 2.727557
+10/29/2025 18:36:57 - INFO -   Epoch: 4/5, Step: 1976/2812, Lr: , Loss: 0.356338, Time/step: 2.410341
+10/29/2025 18:38:55 - INFO -   Epoch: 4/5, Step: 2026/2812, Lr: , Loss: 0.130224, Time/step: 2.358626
+10/29/2025 18:40:56 - INFO -   Epoch: 4/5, Step: 2076/2812, Lr: , Loss: 0.359783, Time/step: 2.428073
+10/29/2025 18:43:14 - INFO -   Epoch: 4/5, Step: 2126/2812, Lr: , Loss: 0.275409, Time/step: 2.743314
+10/29/2025 18:45:15 - INFO -   Epoch: 4/5, Step: 2176/2812, Lr: , Loss: 0.202048, Time/step: 2.431380
+10/29/2025 18:47:15 - INFO -   Epoch: 4/5, Step: 2226/2812, Lr: , Loss: 0.305977, Time/step: 2.401398
+10/29/2025 18:49:19 - INFO -   Epoch: 4/5, Step: 2276/2812, Lr: , Loss: 0.178538, Time/step: 2.475638
+10/29/2025 18:51:40 - INFO -   Epoch: 4/5, Step: 2326/2812, Lr: , Loss: 0.296850, Time/step: 2.811044
+10/29/2025 18:53:45 - INFO -   Epoch: 4/5, Step: 2376/2812, Lr: , Loss: 0.273492, Time/step: 2.507867
+10/29/2025 18:55:47 - INFO -   Epoch: 4/5, Step: 2426/2812, Lr: , Loss: 0.356704, Time/step: 2.445326
+10/29/2025 18:57:57 - INFO -   Epoch: 4/5, Step: 2476/2812, Lr: , Loss: 0.353354, Time/step: 2.603970
+10/29/2025 19:00:17 - INFO -   Epoch: 4/5, Step: 2526/2812, Lr: , Loss: 0.152345, Time/step: 2.792610
+10/29/2025 19:02:19 - INFO -   Epoch: 4/5, Step: 2576/2812, Lr: , Loss: 0.335275, Time/step: 2.445583
+10/29/2025 19:04:28 - INFO -   Epoch: 4/5, Step: 2626/2812, Lr: , Loss: 0.178328, Time/step: 2.566038
+10/29/2025 19:06:35 - INFO -   Epoch: 4/5, Step: 2676/2812, Lr: , Loss: 0.349338, Time/step: 2.539550
+10/29/2025 19:08:48 - INFO -   Epoch: 4/5, Step: 2726/2812, Lr: , Loss: 0.294703, Time/step: 2.662839
+10/29/2025 19:10:55 - INFO -   Epoch: 4/5, Step: 2776/2812, Lr: , Loss: 0.243418, Time/step: 2.538518
+10/29/2025 19:12:13 - INFO -   Epoch 4/5 Finished, Train Loss: 0.278018
+10/29/2025 19:12:14 - INFO -   Model saved to ckpts/msrvtt_run/pytorch_model.bin.3
+10/29/2025 19:12:14 - INFO -   Optimizer saved to ckpts/msrvtt_run/pytorch_opt.bin.3
+0/16
+1/16
+2/16
+3/16
+4/16
+5/16
+6/16
+7/16
+8/16
+9/16
+10/16
+11/16
+12/16
+13/16
+14/16
+15/16
+10/29/2025 19:13:36 - INFO -   sim matrix size: 1000, 1000
+10/29/2025 19:13:36 - INFO -   	 Length-T: 1000, Length-V:1000
+10/29/2025 19:13:36 - INFO -   Text-to-Video:
+10/29/2025 19:13:36 - INFO -   	>>>  R@1: 41.3 - R@5: 70.2 - R@10: 80.5 - Median R: 2.0 - Mean R: 15.8
+10/29/2025 19:13:36 - INFO -   Video-to-Text:
+10/29/2025 19:13:36 - INFO -   	>>>  V2T$R@1: 41.1 - V2T$R@5: 69.0 - V2T$R@10: 80.6 - V2T$Median R: 2.0 - V2T$Mean R: 11.5
+10/29/2025 19:13:36 - INFO -   The best model is: ckpts/msrvtt_run/pytorch_model.bin.1, the R1 is: 42.1000
+10/29/2025 19:14:15 - INFO -   Epoch: 5/5, Step: 14/2812, Lr: , Loss: 0.208090, Time/step: 0.784228
+10/29/2025 19:16:23 - INFO -   Epoch: 5/5, Step: 64/2812, Lr: , Loss: 0.258897, Time/step: 2.549058
+10/29/2025 19:18:40 - INFO -   Epoch: 5/5, Step: 114/2812, Lr: , Loss: 0.172932, Time/step: 2.750302
+10/29/2025 19:20:45 - INFO -   Epoch: 5/5, Step: 164/2812, Lr: , Loss: 0.121188, Time/step: 2.496568
+10/29/2025 19:22:46 - INFO -   Epoch: 5/5, Step: 214/2812, Lr: , Loss: 0.167021, Time/step: 2.407972
+10/29/2025 19:24:45 - INFO -   Epoch: 5/5, Step: 264/2812, Lr: , Loss: 0.119761, Time/step: 2.389346
+10/29/2025 19:27:02 - INFO -   Epoch: 5/5, Step: 314/2812, Lr: , Loss: 0.112684, Time/step: 2.737668
+10/29/2025 19:29:01 - INFO -   Epoch: 5/5, Step: 364/2812, Lr: , Loss: 0.310263, Time/step: 2.371066
+10/29/2025 19:30:59 - INFO -   Epoch: 5/5, Step: 414/2812, Lr: , Loss: 0.193255, Time/step: 2.367111
+10/29/2025 19:32:53 - INFO -   Epoch: 5/5, Step: 464/2812, Lr: , Loss: 0.222959, Time/step: 2.285089
+10/29/2025 19:35:08 - INFO -   Epoch: 5/5, Step: 514/2812, Lr: , Loss: 0.287958, Time/step: 2.691010
+10/29/2025 19:37:09 - INFO -   Epoch: 5/5, Step: 564/2812, Lr: , Loss: 0.131855, Time/step: 2.428065
+10/29/2025 19:39:02 - INFO -   Epoch: 5/5, Step: 614/2812, Lr: , Loss: 0.070660, Time/step: 2.249531
+10/29/2025 19:41:02 - INFO -   Epoch: 5/5, Step: 664/2812, Lr: , Loss: 0.196644, Time/step: 2.405478
+10/29/2025 19:43:10 - INFO -   Epoch: 5/5, Step: 714/2812, Lr: , Loss: 0.146849, Time/step: 2.563958
+10/29/2025 19:45:13 - INFO -   Epoch: 5/5, Step: 764/2812, Lr: , Loss: 0.190818, Time/step: 2.454070
+10/29/2025 19:47:09 - INFO -   Epoch: 5/5, Step: 814/2812, Lr: , Loss: 0.279270, Time/step: 2.322208
+10/29/2025 19:49:10 - INFO -   Epoch: 5/5, Step: 864/2812, Lr: , Loss: 0.242758, Time/step: 2.429238
+10/29/2025 19:51:09 - INFO -   Epoch: 5/5, Step: 914/2812, Lr: , Loss: 0.125138, Time/step: 2.369828
+10/29/2025 19:53:21 - INFO -   Epoch: 5/5, Step: 964/2812, Lr: , Loss: 0.112472, Time/step: 2.644922
+10/29/2025 19:55:22 - INFO -   Epoch: 5/5, Step: 1014/2812, Lr: , Loss: 0.214112, Time/step: 2.414210
+10/29/2025 19:57:22 - INFO -   Epoch: 5/5, Step: 1064/2812, Lr: , Loss: 0.315679, Time/step: 2.399010
+10/29/2025 19:59:18 - INFO -   Epoch: 5/5, Step: 1114/2812, Lr: , Loss: 0.263213, Time/step: 2.332546
+10/29/2025 20:01:28 - INFO -   Epoch: 5/5, Step: 1164/2812, Lr: , Loss: 0.168748, Time/step: 2.583483
+10/29/2025 20:03:29 - INFO -   Epoch: 5/5, Step: 1214/2812, Lr: , Loss: 0.148191, Time/step: 2.433493
+10/29/2025 20:05:26 - INFO -   Epoch: 5/5, Step: 1264/2812, Lr: , Loss: 0.146552, Time/step: 2.329120
+10/29/2025 20:07:34 - INFO -   Epoch: 5/5, Step: 1314/2812, Lr: , Loss: 0.127784, Time/step: 2.563230
+10/29/2025 20:09:47 - INFO -   Epoch: 5/5, Step: 1364/2812, Lr: , Loss: 0.294664, Time/step: 2.657605
+10/29/2025 20:11:45 - INFO -   Epoch: 5/5, Step: 1414/2812, Lr: , Loss: 0.186321, Time/step: 2.358995
+10/29/2025 20:13:52 - INFO -   Epoch: 5/5, Step: 1464/2812, Lr: , Loss: 0.234732, Time/step: 2.537316
+10/29/2025 20:15:56 - INFO -   Epoch: 5/5, Step: 1514/2812, Lr: , Loss: 0.186223, Time/step: 2.484854
+10/29/2025 20:18:11 - INFO -   Epoch: 5/5, Step: 1564/2812, Lr: , Loss: 0.143823, Time/step: 2.704020
+10/29/2025 20:20:12 - INFO -   Epoch: 5/5, Step: 1614/2812, Lr: , Loss: 0.324114, Time/step: 2.412700
+10/29/2025 20:22:09 - INFO -   Epoch: 5/5, Step: 1664/2812, Lr: , Loss: 0.341528, Time/step: 2.344586
+10/29/2025 20:24:16 - INFO -   Epoch: 5/5, Step: 1714/2812, Lr: , Loss: 0.168932, Time/step: 2.549582
+10/29/2025 20:26:34 - INFO -   Epoch: 5/5, Step: 1764/2812, Lr: , Loss: 0.384147, Time/step: 2.746196
+10/29/2025 20:28:42 - INFO -   Epoch: 5/5, Step: 1814/2812, Lr: , Loss: 0.193925, Time/step: 2.568612
+10/29/2025 20:30:47 - INFO -   Epoch: 5/5, Step: 1864/2812, Lr: , Loss: 0.167916, Time/step: 2.501476
+10/29/2025 20:32:51 - INFO -   Epoch: 5/5, Step: 1914/2812, Lr: , Loss: 0.324110, Time/step: 2.485662
+10/29/2025 20:35:00 - INFO -   Epoch: 5/5, Step: 1964/2812, Lr: , Loss: 0.199075, Time/step: 2.566859
+10/29/2025 20:37:15 - INFO -   Epoch: 5/5, Step: 2014/2812, Lr: , Loss: 0.240991, Time/step: 2.697280
+10/29/2025 20:39:14 - INFO -   Epoch: 5/5, Step: 2064/2812, Lr: , Loss: 0.288403, Time/step: 2.376671
+10/29/2025 20:41:22 - INFO -   Epoch: 5/5, Step: 2114/2812, Lr: , Loss: 0.290211, Time/step: 2.569439
+10/29/2025 20:43:28 - INFO -   Epoch: 5/5, Step: 2164/2812, Lr: , Loss: 0.209873, Time/step: 2.523998
+10/29/2025 20:45:49 - INFO -   Epoch: 5/5, Step: 2214/2812, Lr: , Loss: 0.269428, Time/step: 2.820065
+10/29/2025 20:47:54 - INFO -   Epoch: 5/5, Step: 2264/2812, Lr: , Loss: 0.410391, Time/step: 2.489634
+10/29/2025 20:49:54 - INFO -   Epoch: 5/5, Step: 2314/2812, Lr: , Loss: 0.236520, Time/step: 2.412106
+10/29/2025 20:52:04 - INFO -   Epoch: 5/5, Step: 2364/2812, Lr: , Loss: 0.272767, Time/step: 2.589078
+10/29/2025 20:54:16 - INFO -   Epoch: 5/5, Step: 2414/2812, Lr: , Loss: 0.173821, Time/step: 2.639026
+10/29/2025 20:56:14 - INFO -   Epoch: 5/5, Step: 2464/2812, Lr: , Loss: 0.174643, Time/step: 2.372850
+10/29/2025 20:58:23 - INFO -   Epoch: 5/5, Step: 2514/2812, Lr: , Loss: 0.180820, Time/step: 2.583078
+10/29/2025 21:00:23 - INFO -   Epoch: 5/5, Step: 2564/2812, Lr: , Loss: 0.251044, Time/step: 2.389934
+10/29/2025 21:02:35 - INFO -   Epoch: 5/5, Step: 2614/2812, Lr: , Loss: 0.188786, Time/step: 2.647649
+10/29/2025 21:04:38 - INFO -   Epoch: 5/5, Step: 2664/2812, Lr: , Loss: 0.240777, Time/step: 2.446377
+10/29/2025 21:06:04 - INFO -   Epoch: 5/5, Step: 2714/2812, Lr: , Loss: 0.426392, Time/step: 1.722349
+10/29/2025 21:08:06 - INFO -   Epoch: 5/5, Step: 2764/2812, Lr: , Loss: 0.142681, Time/step: 2.439383
+10/29/2025 21:09:59 - INFO -   Epoch 5/5 Finished, Train Loss: 0.209854
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO misc/socket.cc:64 -> 3
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO misc/socket.cc:81 -> 3
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO misc/socket.cc:863 -> 3
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO misc/socket.cc:64 -> 3
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO misc/socket.cc:81 -> 3
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO misc/socket.cc:863 -> 3
+autodl-container-5252488ad4-957edec5:5791:6036 [1] NCCL INFO misc/socket.cc:915 -> 3
+10/29/2025 21:10:00 - INFO -   Model saved to ckpts/msrvtt_run/pytorch_model.bin.4
+10/29/2025 21:10:00 - INFO -   Optimizer saved to ckpts/msrvtt_run/pytorch_opt.bin.4
+autodl-container-5252488ad4-957edec5:5791:600472 [1] NCCL INFO comm 0x18cb7580 rank 1 nranks 2 cudaDev 1 busId 38000 - Abort COMPLETE
+0/16
+1/16
+2/16
+3/16
+4/16
+5/16
+6/16
+7/16
+8/16
+9/16
+10/16
+11/16
+12/16
+13/16
+14/16
+15/16
+10/29/2025 21:11:16 - INFO -   sim matrix size: 1000, 1000
+10/29/2025 21:11:17 - INFO -   	 Length-T: 1000, Length-V:1000
+10/29/2025 21:11:17 - INFO -   Text-to-Video:
+10/29/2025 21:11:17 - INFO -   	>>>  R@1: 41.6 - R@5: 69.3 - R@10: 79.6 - Median R: 2.0 - Mean R: 16.2
+10/29/2025 21:11:17 - INFO -   Video-to-Text:
+10/29/2025 21:11:17 - INFO -   	>>>  V2T$R@1: 40.1 - V2T$R@5: 68.8 - V2T$R@10: 80.7 - V2T$Median R: 2.0 - V2T$Mean R: 11.7
+10/29/2025 21:11:17 - INFO -   The best model is: ckpts/msrvtt_run/pytorch_model.bin.1, the R1 is: 42.1000
+[rank0]:[W1029 21:11:17.273587971 ProcessGroupNCCL.cpp:1524] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO misc/socket.cc:64 -> 3
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO misc/socket.cc:81 -> 3
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO misc/socket.cc:863 -> 3
+autodl-container-5252488ad4-957edec5:5790:6038 [0] NCCL INFO misc/socket.cc:915 -> 3
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO misc/socket.cc:64 -> 3
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO misc/socket.cc:81 -> 3
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO misc/socket.cc:863 -> 3
+autodl-container-5252488ad4-957edec5:5790:616540 [0] NCCL INFO comm 0x1d1d1600 rank 0 nranks 2 cudaDev 0 busId 27000 - Abort COMPLETE
+===== TRAINING FINISHED =====
+Log saved to: ckpts/msrvtt_run/train_20251029_124814.log
