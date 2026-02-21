@@ -22,6 +22,14 @@ from torch import nn
 import torch.nn.functional as F
 import math
 from modules.until_config import PretrainedConfig
+from modules.probabilistic_alignment import (
+    GaussianParamHead,
+    sample_gaussian,
+    mc_match_probability,
+    pair_bce_loss,
+    gaussian_kl_to_std_normal,
+    uniformity_loss,
+)
 
 logger = logging.getLogger(__name__)
 

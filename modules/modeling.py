@@ -3,18 +3,76 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
+import math
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 
-from modules.until_module import PreTrainedModel, AllGather, CrossEn
+from modules.until_module import (
+    PreTrainedModel,
+    AllGather,
+    CrossEn,
+    GaussianParamHead,
+    sample_gaussian,
+    mc_match_probability,
+    pair_bce_loss,
+    gaussian_kl_to_std_normal,
+    uniformity_loss,
+)
 from modules.module_cross import CrossModel, CrossConfig, Transformer as TransformerClip
 
 from modules.module_clip import CLIP, convert_weights
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 logger = logging.getLogger(__name__)
 allgather = AllGather.apply
+
+class LayerNormConv2d(nn.Module):
+    def __init__(self, channels):
+        super(LayerNormConv2d, self).__init__()
+        self.norm = nn.LayerNorm(channels)
+
+    def forward(self, x):
+        x = x.permute(0, 2, 3, 1).contiguous()
+        x = self.norm(x)
+        return x.permute(0, 3, 1, 2).contiguous()
+
+class MultiScaleStage(nn.Module):
+    def __init__(self, channels, scale):
+        super(MultiScaleStage, self).__init__()
+        if scale == 1.0:
+            self.resample = nn.Identity()
+        elif scale < 1.0:
+            pool_kernel = int(round(1.0 / scale))
+            self.resample = nn.AvgPool2d(kernel_size=pool_kernel, stride=pool_kernel)
+        else:
+            self.resample = nn.Upsample(scale_factor=scale, mode="bilinear", align_corners=False)
+
+        self.proj = nn.Sequential(
+            nn.Conv2d(channels, channels, kernel_size=1, bias=False),
+            LayerNormConv2d(channels),
+            nn.GELU(),
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False),
+            LayerNormConv2d(channels),
+        )
+
+    def forward(self, x):
+        x = self.resample(x)
+        return self.proj(x)
+
+class TemporalResidualBlock(nn.Module):
+    def __init__(self, embed_dim, dropout=0.1):
+        super(TemporalResidualBlock, self).__init__()
+        self.norm = nn.LayerNorm(embed_dim)
+        self.ffn = nn.Sequential(
+            nn.Linear(embed_dim, embed_dim * 4),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(embed_dim * 4, embed_dim),
+        )
+
+    def forward(self, x):
+        return x + self.ffn(self.norm(x))
 
 class CLIP4ClipPreTrainedModel(PreTrainedModel, nn.Module):
     """ An abstract class to handle weights initialization and
@@ -241,6 +299,27 @@ class CLIP4Clip(CLIP4ClipPreTrainedModel):
         if self.sim_header == "seqLSTM":
             self.lstm_visual = nn.LSTM(input_size=cross_config.hidden_size, hidden_size=cross_config.hidden_size,
                                        batch_first=True, bidirectional=False, num_layers=1)
+        if self.loose_type and self.sim_header != "tightTransf":
+            self.use_pcme_prob = True
+            self.muse_num_frames = 12
+            self.muse_tokens_per_frame = 50
+            self.muse_scales = [0.5, 1.0, 2.0]
+            self.muse_stages = nn.ModuleList(
+                [MultiScaleStage(transformer_width, scale=scale) for scale in self.muse_scales]
+            )
+            self.muse_temporal_blocks = nn.ModuleList(
+                [TemporalResidualBlock(transformer_width, dropout=0.1) for _ in range(4)]
+            )
+            logsigma_min = getattr(self.task_config, "pcme_logsigma_min", -7.0)
+            logsigma_max = getattr(self.task_config, "pcme_logsigma_max", 7.0)
+            self.txt_prob_head = GaussianParamHead(transformer_width, logsigma_min=logsigma_min, logsigma_max=logsigma_max)
+            self.vid_prob_head = GaussianParamHead(transformer_width, logsigma_min=logsigma_min, logsigma_max=logsigma_max)
+            self.pcme_alpha = nn.Parameter(torch.tensor(float(getattr(self.task_config, "pcme_alpha_init", 1.0))))
+            self.pcme_beta = nn.Parameter(torch.tensor(float(getattr(self.task_config, "pcme_beta_init", 0.0))))
+            show_log(task_config, "\t pcme_train_samples: {}".format(getattr(self.task_config, "pcme_train_samples", 4)))
+            show_log(task_config, "\t pcme_eval_samples: {}".format(getattr(self.task_config, "pcme_eval_samples", 16)))
+        else:
+            self.use_pcme_prob = False
 
         self.loss_fct = CrossEn()
 
@@ -262,13 +341,34 @@ class CLIP4Clip(CLIP4ClipPreTrainedModel):
                                                                          video, video_mask, shaped=True, video_frame=video_frame)
 
         if self.training:
-            loss = 0.
-            sim_matrix, *_tmp = self.get_similarity_logits(sequence_output, visual_output, attention_mask, video_mask,
-                                                    shaped=True, loose_type=self.loose_type)
-            sim_loss1 = self.loss_fct(sim_matrix)
-            sim_loss2 = self.loss_fct(sim_matrix.T)
-            sim_loss = (sim_loss1 + sim_loss2) / 2
-            loss += sim_loss
+            sim_matrix, _, aux_info = self.get_similarity_logits(
+                sequence_output,
+                visual_output,
+                attention_mask,
+                video_mask,
+                shaped=True,
+                loose_type=self.loose_type,
+                return_aux=True,
+            )
+            loss_ce = (self.loss_fct(sim_matrix) + self.loss_fct(sim_matrix.T)) / 2
+            loss = loss_ce
+
+            if self.use_pcme_prob and aux_info is not None:
+                prob_matrix = aux_info["match_prob"]
+                if prob_matrix.size(0) != prob_matrix.size(1):
+                    raise ValueError("PCME mixed loss expects a square similarity matrix during training.")
+                target_matrix = torch.eye(prob_matrix.size(0), device=prob_matrix.device, dtype=prob_matrix.dtype)
+                loss_bce = pair_bce_loss(prob_matrix, target_matrix)
+                loss_kl = gaussian_kl_to_std_normal(aux_info["txt_mu"], aux_info["txt_log_sigma"])
+                loss_kl = loss_kl + gaussian_kl_to_std_normal(aux_info["vid_mu"], aux_info["vid_log_sigma"])
+                temperature = getattr(self.task_config, "pcme_uniformity_t", 2.0)
+                loss_unif = uniformity_loss(aux_info["txt_mu"], temperature)
+                loss_unif = loss_unif + uniformity_loss(aux_info["vid_mu"], temperature)
+
+                lambda_match = getattr(self.task_config, "pcme_lambda_match", 1.0)
+                lambda_kl = getattr(self.task_config, "pcme_lambda_kl", 5e-4)
+                lambda_unif = getattr(self.task_config, "pcme_lambda_unif", 1e-3)
+                loss = loss + lambda_match * loss_bce + lambda_kl * loss_kl + lambda_unif * loss_unif
 
             return loss
         else:
@@ -295,8 +395,15 @@ class CLIP4Clip(CLIP4ClipPreTrainedModel):
             video_frame = bs * ts
 
         bs_pair = video_mask.size(0)
-        visual_hidden = self.clip.encode_image(video, video_frame=video_frame).float()
-        visual_hidden = visual_hidden.view(bs_pair, -1, visual_hidden.size(-1))
+        if hasattr(self, "muse_stages"):
+            _, visual_hidden_tokens = self.clip.encode_image(video, return_hidden=True, video_frame=video_frame)
+            visual_hidden_tokens = visual_hidden_tokens.float()
+            visual_hidden = visual_hidden_tokens.view(
+                bs_pair, video_frame * visual_hidden_tokens.size(1), visual_hidden_tokens.size(-1)
+            )
+        else:
+            visual_hidden = self.clip.encode_image(video, video_frame=video_frame).float()
+            visual_hidden = visual_hidden.view(bs_pair, -1, visual_hidden.size(-1))
 
         return visual_hidden
 
@@ -351,54 +458,102 @@ class CLIP4Clip(CLIP4ClipPreTrainedModel):
 
         return text_out, video_out
 
-    def _loose_similarity(self, sequence_output, visual_output, attention_mask, video_mask, sim_header="meanP"):
-        sequence_output, visual_output = sequence_output.contiguous(), visual_output.contiguous()
+    def _muse_lite_fuse_visual_tokens(self, visual_output, video_mask):
+        batch_size, total_tokens, channels = visual_output.shape
+        num_frames = video_mask.size(1)
 
-        if sim_header == "meanP":
-            # Default: Parameter-free type
-            pass
-        elif sim_header == "seqLSTM":
-            # Sequential type: LSTM
-            visual_output_original = visual_output
-            visual_output = pack_padded_sequence(visual_output, torch.sum(video_mask, dim=-1).cpu(),
-                                                 batch_first=True, enforce_sorted=False)
-            visual_output, _ = self.lstm_visual(visual_output)
-            if self.training: self.lstm_visual.flatten_parameters()
-            visual_output, _ = pad_packed_sequence(visual_output, batch_first=True)
-            visual_output = torch.cat((visual_output, visual_output_original[:, visual_output.size(1):, ...].contiguous()), dim=1)
-            visual_output = visual_output + visual_output_original
-        elif sim_header == "seqTransf":
-            # Sequential type: Transformer Encoder
-            visual_output_original = visual_output
-            seq_length = visual_output.size(1)
-            position_ids = torch.arange(seq_length, dtype=torch.long, device=visual_output.device)
-            position_ids = position_ids.unsqueeze(0).expand(visual_output.size(0), -1)
-            frame_position_embeddings = self.frame_position_embeddings(position_ids)
-            visual_output = visual_output + frame_position_embeddings
+        if num_frames != self.muse_num_frames:
+            raise ValueError("MUSE expects {} frames, but got {}.".format(self.muse_num_frames, num_frames))
+        if total_tokens % num_frames != 0:
+            raise ValueError("Invalid visual token layout: total_tokens={} is not divisible by frames={}.".format(
+                total_tokens, num_frames
+            ))
 
-            extended_video_mask = (1.0 - video_mask.unsqueeze(1)) * -1000000.0
-            extended_video_mask = extended_video_mask.expand(-1, video_mask.size(1), -1)
-            visual_output = visual_output.permute(1, 0, 2)  # NLD -> LND
-            visual_output = self.transformerClip(visual_output, extended_video_mask)
-            visual_output = visual_output.permute(1, 0, 2)  # LND -> NLD
-            visual_output = visual_output + visual_output_original
+        tokens_per_frame = total_tokens // num_frames
+        if tokens_per_frame != self.muse_tokens_per_frame:
+            raise ValueError("MUSE expects {} tokens per frame, but got {}.".format(
+                self.muse_tokens_per_frame, tokens_per_frame
+            ))
 
+        visual_output = visual_output.view(batch_size, num_frames, tokens_per_frame, channels)
+        cls_tokens = visual_output[:, :, 0, :].contiguous()
+        patch_tokens = visual_output[:, :, 1:, :].contiguous()
+
+        spatial_tokens = patch_tokens.size(2)
+        spatial_size = int(math.sqrt(spatial_tokens))
+        if spatial_size * spatial_size != spatial_tokens:
+            raise ValueError("Patch token count {} is not a square number.".format(spatial_tokens))
+
+        patch_map = patch_tokens.view(batch_size * num_frames, spatial_size, spatial_size, channels).permute(0, 3, 1, 2)
+
+        multiscale_tokens = []
+        for stage in self.muse_stages:
+            stage_feature = stage(patch_map)
+            stage_feature = stage_feature.view(batch_size, num_frames, channels, -1).permute(0, 1, 3, 2).contiguous()
+            multiscale_tokens.append(stage_feature.view(batch_size, -1, channels))
+
+        fused_tokens = torch.cat([cls_tokens, torch.cat(multiscale_tokens, dim=1)], dim=1)
+        for block in self.muse_temporal_blocks:
+            fused_tokens = block(fused_tokens)
+
+        return fused_tokens[:, :num_frames, :].contiguous()
+
+    def _compute_loose_global_embeddings(self, sequence_output, visual_output, video_mask, sim_header="meanP"):
+        if sim_header in ["meanP", "seqLSTM", "seqTransf"]:
+            sim_header = "MUSE"
+
+        if sim_header == "MUSE":
+            visual_output = self._muse_lite_fuse_visual_tokens(visual_output, video_mask)
+        else:
+            raise ValueError("Unsupported loose similarity header: {}".format(sim_header))
+
+        visual_output = visual_output / visual_output.norm(dim=-1, keepdim=True)
+        video_embed = self._mean_pooling_for_similarity_visual(visual_output, video_mask)
+        video_embed = video_embed / video_embed.norm(dim=-1, keepdim=True)
+
+        text_embed = sequence_output.squeeze(1)
+        text_embed = text_embed / text_embed.norm(dim=-1, keepdim=True)
+        return text_embed, video_embed
+
+    def _probabilistic_loose_similarity(self, text_embed, video_embed, return_aux=False):
         if self.training:
-            visual_output = allgather(visual_output, self.task_config)
-            video_mask = allgather(video_mask, self.task_config)
-            sequence_output = allgather(sequence_output, self.task_config)
+            text_embed = allgather(text_embed, self.task_config)
+            video_embed = allgather(video_embed, self.task_config)
             torch.distributed.barrier()
 
-        visual_output = visual_output / visual_output.norm(dim=-1, keepdim=True)
-        visual_output = self._mean_pooling_for_similarity_visual(visual_output, video_mask)
-        visual_output = visual_output / visual_output.norm(dim=-1, keepdim=True)
+        txt_mu, txt_log_sigma = self.txt_prob_head(text_embed)
+        vid_mu, vid_log_sigma = self.vid_prob_head(video_embed)
 
-        sequence_output = sequence_output.squeeze(1)
-        sequence_output = sequence_output / sequence_output.norm(dim=-1, keepdim=True)
+        num_samples = getattr(self.task_config, "pcme_train_samples", 4) if self.training \
+            else getattr(self.task_config, "pcme_eval_samples", 16)
+        txt_samples = sample_gaussian(txt_mu, txt_log_sigma, num_samples)
+        vid_samples = sample_gaussian(vid_mu, vid_log_sigma, num_samples)
 
-        logit_scale = self.clip.logit_scale.exp()
-        retrieve_logits = logit_scale * torch.matmul(sequence_output, visual_output.t())
-        return retrieve_logits
+        alpha = F.softplus(self.pcme_alpha) + 1e-6
+        beta = self.pcme_beta
+        match_prob, sim_logits = mc_match_probability(txt_samples, vid_samples, alpha=alpha, beta=beta)
+
+        aux_info = None
+        if return_aux:
+            aux_info = {
+                "match_prob": match_prob,
+                "txt_mu": txt_mu,
+                "txt_log_sigma": txt_log_sigma,
+                "vid_mu": vid_mu,
+                "vid_log_sigma": vid_log_sigma,
+            }
+        return sim_logits, aux_info
+
+    def _loose_similarity(self, sequence_output, visual_output, attention_mask, video_mask, sim_header="meanP", return_aux=False):
+        del attention_mask
+        sequence_output, visual_output = sequence_output.contiguous(), visual_output.contiguous()
+        text_embed, video_embed = self._compute_loose_global_embeddings(
+            sequence_output, visual_output, video_mask, sim_header=sim_header
+        )
+        retrieve_logits, aux_info = self._probabilistic_loose_similarity(
+            text_embed, video_embed, return_aux=return_aux
+        )
+        return retrieve_logits, aux_info
 
     def _cross_similarity(self, sequence_output, visual_output, attention_mask, video_mask):
         sequence_output, visual_output = sequence_output.contiguous(), visual_output.contiguous()
@@ -443,17 +598,25 @@ class CLIP4Clip(CLIP4ClipPreTrainedModel):
         retrieve_logits = torch.cat(retrieve_logits_list, dim=0)
         return retrieve_logits
 
-    def get_similarity_logits(self, sequence_output, visual_output, attention_mask, video_mask, shaped=False, loose_type=False):
+    def get_similarity_logits(self, sequence_output, visual_output, attention_mask, video_mask, shaped=False, loose_type=False, return_aux=False):
         if shaped is False:
             attention_mask = attention_mask.view(-1, attention_mask.shape[-1])
             video_mask = video_mask.view(-1, video_mask.shape[-1])
 
         contrastive_direction = ()
+        aux_info = None
         if loose_type:
-            assert self.sim_header in ["meanP", "seqLSTM", "seqTransf"]
-            retrieve_logits = self._loose_similarity(sequence_output, visual_output, attention_mask, video_mask, sim_header=self.sim_header)
+            assert self.sim_header in ["meanP", "seqLSTM", "seqTransf", "MUSE"]
+            retrieve_logits, aux_info = self._loose_similarity(
+                sequence_output,
+                visual_output,
+                attention_mask,
+                video_mask,
+                sim_header=self.sim_header,
+                return_aux=return_aux,
+            )
         else:
             assert self.sim_header in ["tightTransf"]
             retrieve_logits = self._cross_similarity(sequence_output, visual_output, attention_mask, video_mask, )
 
-        return retrieve_logits, contrastive_direction
+        return retrieve_logits, contrastive_direction, aux_info

@@ -99,15 +99,37 @@ def get_args(description='CLIP4Clip on Retrieval Task'):
     parser.add_argument('--linear_patch', type=str, default="2d", choices=["2d", "3d"],
                         help="linear projection of flattened patches.")
     parser.add_argument('--sim_header', type=str, default="meanP",
-                        choices=["meanP", "seqLSTM", "seqTransf", "tightTransf"],
+                        choices=["meanP", "seqLSTM", "seqTransf", "tightTransf", "MUSE"],
                         help="choice a similarity header.")
+    parser.add_argument('--pcme_train_samples', type=int, default=4, help='MC samples for training.')
+    parser.add_argument('--pcme_eval_samples', type=int, default=16, help='MC samples for evaluation.')
+    parser.add_argument('--pcme_logsigma_min', type=float, default=-7.0, help='Lower clamp bound of log sigma.')
+    parser.add_argument('--pcme_logsigma_max', type=float, default=7.0, help='Upper clamp bound of log sigma.')
+    parser.add_argument('--pcme_alpha_init', type=float, default=1.0, help='Initial alpha for probabilistic matching.')
+    parser.add_argument('--pcme_beta_init', type=float, default=0.0, help='Initial beta for probabilistic matching.')
+    parser.add_argument('--pcme_lambda_match', type=float, default=1.0, help='Weight for match BCE loss.')
+    parser.add_argument('--pcme_lambda_kl', type=float, default=5e-4, help='Weight for Gaussian KL loss.')
+    parser.add_argument('--pcme_lambda_unif', type=float, default=1e-3, help='Weight for uniformity loss.')
+    parser.add_argument('--pcme_uniformity_t', type=float, default=2.0, help='Temperature for uniformity regularizer.')
 
     parser.add_argument("--pretrained_clip_name", default="ViT-B/32", type=str, help="Choose a CLIP version")
 
     args = parser.parse_args()
 
+    legacy_loose_headers = {"meanP", "seqLSTM", "seqTransf"}
     if args.sim_header == "tightTransf":
         args.loose_type = False
+    else:
+        if args.sim_header == "MUSE" and not args.loose_type:
+            print("[compat] Enabling --loose_type because MUSE is a loose retrieval header.")
+            args.loose_type = True
+
+        if args.loose_type and args.sim_header in legacy_loose_headers:
+            print("[compat] --sim_header {} is mapped to MUSE in loose retrieval mode.".format(args.sim_header))
+            args.sim_header = "MUSE"
+
+    if args.sim_header == "MUSE" and args.max_frames != 12:
+        raise ValueError("MUSE requires --max_frames=12, but got {}.".format(args.max_frames))
 
     # Check paramenters
     if args.gradient_accumulation_steps < 1:
@@ -516,6 +538,13 @@ def main():
     # -------------------------------------------------------------------
 
     args = set_seed_logger(args)
+    if args.local_rank == 0:
+        logger.info("Effective retrieval header: %s (loose_type=%s, max_frames=%d)",
+                    args.sim_header, args.loose_type, args.max_frames)
+        logger.info("PCME config: train_samples=%d eval_samples=%d alpha_init=%.4f beta_init=%.4f "
+                    "lambda_match=%.6f lambda_kl=%.6f lambda_unif=%.6f uniformity_t=%.3f",
+                    args.pcme_train_samples, args.pcme_eval_samples, args.pcme_alpha_init, args.pcme_beta_init,
+                    args.pcme_lambda_match, args.pcme_lambda_kl, args.pcme_lambda_unif, args.pcme_uniformity_t)
     device, n_gpu = init_device(args, args.local_rank)
 
     tokenizer = ClipTokenizer()
