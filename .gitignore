@@ -6,3 +6,9 @@ ckpts/*.pt
 ckpts/*.binckpts/*.bin
 ckpts/*.pt
 ckpts/*.pth
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
