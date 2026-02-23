@@ -45,7 +45,7 @@ CMD=(
   main_task_retrieval.py
   --do_train
   --num_thread_reader=16
-  --epochs=5
+  --epochs=7
   --batch_size=128
   --n_display=50
   --train_csv "${DATA_PATH}/MSRVTT_train.9k.csv"
@@ -60,22 +60,33 @@ CMD=(
   --datatype msrvtt
   --expand_msrvtt_sentences
   --feature_framerate 1
-  --coef_lr 1e-3
   --freeze_layer_num 0
   --slice_framepos 2
   --loose_type
   --linear_patch 2d
   --sim_header MUSE
+  --pcme_mode hybrid
+  --muse_mix_target 0.5
+  --muse_warmup_epochs 2
+  --muse_ramp_epochs 3
+  --pcme_prob_mix_target 0.3
+  --pcme_prob_warmup_epochs 4
+  --pcme_prob_ramp_epochs 2
+  --pcme_enable_aux_loss true
+  --pcme_aux_warmup_epochs 4
   --pcme_train_samples 4
   --pcme_eval_samples 16
   --pcme_logsigma_min -7.0
   --pcme_logsigma_max 7.0
+  --pcme_logsigma_bias_init -5.0
   --pcme_alpha_init 1.0
   --pcme_beta_init 0.0
-  --pcme_lambda_match 1.0
-  --pcme_lambda_kl 5e-4
-  --pcme_lambda_unif 1e-3
+  --pcme_lambda_match 0.1
+  --pcme_lambda_kl 5e-5
+  --pcme_lambda_unif 5e-4
   --pcme_uniformity_t 2.0
+  --lr_clip 5e-6
+  --lr_new_modules 3e-4
   --pretrained_clip_name ViT-B/32
 )
 

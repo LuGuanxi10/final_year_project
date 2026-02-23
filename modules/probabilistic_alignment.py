@@ -6,12 +6,17 @@ import torch.nn.functional as F
 
 
 class GaussianParamHead(nn.Module):
-    def __init__(self, embed_dim, logsigma_min=-7.0, logsigma_max=7.0):
+    def __init__(self, embed_dim, logsigma_min=-7.0, logsigma_max=7.0, logsigma_bias_init=-5.0):
         super(GaussianParamHead, self).__init__()
         self.mu_proj = nn.Linear(embed_dim, embed_dim)
         self.logsigma_proj = nn.Linear(embed_dim, embed_dim)
         self.logsigma_min = logsigma_min
         self.logsigma_max = logsigma_max
+        self.logsigma_bias_init = logsigma_bias_init
+
+        # Keep the early variance small so probabilistic branch does not overwhelm CE at startup.
+        nn.init.normal_(self.logsigma_proj.weight, std=1e-3)
+        nn.init.constant_(self.logsigma_proj.bias, self.logsigma_bias_init)
 
     def forward(self, x):
         mu = F.normalize(self.mu_proj(x), dim=-1)

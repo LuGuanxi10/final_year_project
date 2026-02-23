@@ -22,6 +22,16 @@ torch.distributed.init_process_group(backend="nccl")
 
 global logger
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    v = str(v).lower()
+    if v in ("yes", "true", "t", "1", "y"):
+        return True
+    if v in ("no", "false", "f", "0", "n"):
+        return False
+    raise argparse.ArgumentTypeError("Boolean value expected.")
+
 def get_args(description='CLIP4Clip on Retrieval Task'):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--do_pretrain", action='store_true', help="Whether to run training.")
@@ -111,6 +121,21 @@ def get_args(description='CLIP4Clip on Retrieval Task'):
     parser.add_argument('--pcme_lambda_kl', type=float, default=5e-4, help='Weight for Gaussian KL loss.')
     parser.add_argument('--pcme_lambda_unif', type=float, default=1e-3, help='Weight for uniformity loss.')
     parser.add_argument('--pcme_uniformity_t', type=float, default=2.0, help='Temperature for uniformity regularizer.')
+    parser.add_argument('--pcme_mode', type=str, default="deterministic",
+                        choices=["deterministic", "hybrid", "probabilistic"],
+                        help='Similarity mode for loose retrieval.')
+    parser.add_argument('--muse_mix_target', type=float, default=0.5, help='Target mix ratio for MUSE fused video embedding.')
+    parser.add_argument('--muse_warmup_epochs', type=int, default=2, help='Warmup epochs before enabling MUSE mix.')
+    parser.add_argument('--muse_ramp_epochs', type=int, default=3, help='Epochs to ramp MUSE mix from 0 to target.')
+    parser.add_argument('--pcme_prob_mix_target', type=float, default=0.3, help='Target mix ratio of probabilistic logits.')
+    parser.add_argument('--pcme_prob_warmup_epochs', type=int, default=4, help='Warmup epochs before probabilistic mix.')
+    parser.add_argument('--pcme_prob_ramp_epochs', type=int, default=2, help='Epochs to ramp probabilistic mix.')
+    parser.add_argument('--pcme_enable_aux_loss', type=str2bool, default=True,
+                        help='Whether to enable PCME auxiliary BCE/KL/Uniformity losses.')
+    parser.add_argument('--pcme_aux_warmup_epochs', type=int, default=4, help='Warmup epochs before auxiliary losses.')
+    parser.add_argument('--pcme_logsigma_bias_init', type=float, default=-5.0, help='Initial bias for log sigma projection.')
+    parser.add_argument('--lr_clip', type=float, default=5e-6, help='Learning rate for clip.* parameters.')
+    parser.add_argument('--lr_new_modules', type=float, default=3e-4, help='Learning rate for MUSE/PCME modules.')
 
     parser.add_argument("--pretrained_clip_name", default="ViT-B/32", type=str, help="Choose a CLIP version")
 
@@ -137,6 +162,16 @@ def get_args(description='CLIP4Clip on Retrieval Task'):
             args.gradient_accumulation_steps))
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
+    if not 0.0 <= args.muse_mix_target <= 1.0:
+        raise ValueError("--muse_mix_target must be in [0, 1], got {}".format(args.muse_mix_target))
+    if not 0.0 <= args.pcme_prob_mix_target <= 1.0:
+        raise ValueError("--pcme_prob_mix_target must be in [0, 1], got {}".format(args.pcme_prob_mix_target))
+    if args.muse_warmup_epochs < 0 or args.muse_ramp_epochs < 0:
+        raise ValueError("--muse_warmup_epochs and --muse_ramp_epochs must be >= 0")
+    if args.pcme_prob_warmup_epochs < 0 or args.pcme_prob_ramp_epochs < 0:
+        raise ValueError("--pcme_prob_warmup_epochs and --pcme_prob_ramp_epochs must be >= 0")
+    if args.pcme_aux_warmup_epochs < 0:
+        raise ValueError("--pcme_aux_warmup_epochs must be >= 0")
 
     args.batch_size = int(args.batch_size / args.gradient_accumulation_steps)
 
@@ -238,23 +273,34 @@ def prep_optimizer(args, model, num_train_optimization_steps, device, n_gpu, loc
 
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+    new_module_markers = ("muse_", "txt_prob_head", "vid_prob_head", "pcme_alpha", "pcme_beta")
 
-    decay_param_tp = [(n, p) for n, p in param_optimizer if not any(nd in n for nd in no_decay)]
-    no_decay_param_tp = [(n, p) for n, p in param_optimizer if any(nd in n for nd in no_decay)]
+    def _group_lr(param_name):
+        if param_name.startswith("clip."):
+            return args.lr_clip
+        if any(marker in param_name for marker in new_module_markers):
+            return args.lr_new_modules
+        return args.lr
 
-    decay_clip_param_tp = [(n, p) for n, p in decay_param_tp if "clip." in n]
-    decay_noclip_param_tp = [(n, p) for n, p in decay_param_tp if "clip." not in n]
-
-    no_decay_clip_param_tp = [(n, p) for n, p in no_decay_param_tp if "clip." in n]
-    no_decay_noclip_param_tp = [(n, p) for n, p in no_decay_param_tp if "clip." not in n]
+    grouped_params = {}
+    for n, p in param_optimizer:
+        if not p.requires_grad:
+            continue
+        decay_key = "no_decay" if any(nd in n for nd in no_decay) else "decay"
+        lr = _group_lr(n)
+        key = (lr, decay_key)
+        grouped_params.setdefault(key, []).append(p)
 
     weight_decay = 0.2
-    optimizer_grouped_parameters = [
-        {'params': [p for n, p in decay_clip_param_tp], 'weight_decay': weight_decay, 'lr': args.lr * coef_lr},
-        {'params': [p for n, p in decay_noclip_param_tp], 'weight_decay': weight_decay},
-        {'params': [p for n, p in no_decay_clip_param_tp], 'weight_decay': 0.0, 'lr': args.lr * coef_lr},
-        {'params': [p for n, p in no_decay_noclip_param_tp], 'weight_decay': 0.0}
-    ]
+    optimizer_grouped_parameters = []
+    for (lr, decay_key), params in sorted(grouped_params.items(), key=lambda kv: (kv[0][0], kv[0][1])):
+        if len(params) == 0:
+            continue
+        optimizer_grouped_parameters.append({
+            'params': params,
+            'weight_decay': 0.0 if decay_key == "no_decay" else weight_decay,
+            'lr': lr
+        })
 
     scheduler = None
     optimizer = BertAdam(optimizer_grouped_parameters, lr=args.lr, warmup=args.warmup_proportion,
@@ -355,15 +401,39 @@ def train_epoch(epoch, args, model, train_dataloader, device, n_gpu, optimizer, 
 
             global_step += 1
             if global_step % log_step == 0 and local_rank == 0:
-                logger.info("Epoch: %d/%s, Step: %d/%d, Lr: %s, Loss: %f, Time/step: %f", epoch + 1,
-                            args.epochs, step + 1,
-                            len(train_dataloader), "-".join([str('%.9f'%itm) for itm in sorted(list(set(optimizer.get_lr())))]),
-                            float(loss),
-                            (time.time() - start_time) / (log_step * args.gradient_accumulation_steps))
+                lr_values = sorted(list(set(float(group['lr']) for group in optimizer.param_groups)))
+                lr_text = "-".join(['%.9f' % itm for itm in lr_values])
+                model_ref = model.module if hasattr(model, 'module') else model
+                debug_stats = getattr(model_ref, "latest_debug_stats", {}) or {}
+                logit_scale = float(model_ref.clip.logit_scale.exp().item()) if hasattr(model_ref, "clip") else 0.0
+                if debug_stats:
+                    logsigma_mean = debug_stats.get("logsigma_mean", None)
+                    logsigma_text = "NA" if logsigma_mean is None else "{:.4f}".format(logsigma_mean)
+                    logger.info(
+                        "Epoch: %d/%s, Step: %d/%d, Lr: %s, Loss: %f, Time/step: %f, "
+                        "muse_mix: %.3f, prob_mix: %.3f, diag-offdiag: %.4f, logsigma_mean: %s, logit_scale: %.4f",
+                        epoch + 1, args.epochs, step + 1, len(train_dataloader), lr_text, float(loss),
+                        (time.time() - start_time) / (log_step * args.gradient_accumulation_steps),
+                        float(debug_stats.get("muse_mix", 0.0)),
+                        float(debug_stats.get("prob_mix", 0.0)),
+                        float(debug_stats.get("diag_minus_offdiag", 0.0)),
+                        logsigma_text,
+                        logit_scale,
+                    )
+                else:
+                    logger.info("Epoch: %d/%s, Step: %d/%d, Lr: %s, Loss: %f, Time/step: %f, logit_scale: %.4f",
+                                epoch + 1, args.epochs, step + 1, len(train_dataloader), lr_text, float(loss),
+                                (time.time() - start_time) / (log_step * args.gradient_accumulation_steps),
+                                logit_scale)
                 start_time = time.time()
 
     total_loss = total_loss / len(train_dataloader)
     return total_loss, global_step
+
+def set_model_epoch(model, epoch):
+    model_ref = model.module if hasattr(model, 'module') else model
+    if hasattr(model_ref, "current_epoch"):
+        model_ref.current_epoch = int(epoch)
 
 def _run_on_single_gpu(model, batch_list_t, batch_list_v, batch_sequence_output_list, batch_visual_output_list):
     sim_matrix = []
@@ -541,10 +611,16 @@ def main():
     if args.local_rank == 0:
         logger.info("Effective retrieval header: %s (loose_type=%s, max_frames=%d)",
                     args.sim_header, args.loose_type, args.max_frames)
-        logger.info("PCME config: train_samples=%d eval_samples=%d alpha_init=%.4f beta_init=%.4f "
-                    "lambda_match=%.6f lambda_kl=%.6f lambda_unif=%.6f uniformity_t=%.3f",
+        logger.info("PCME config: mode=%s train_samples=%d eval_samples=%d alpha_init=%.4f beta_init=%.4f "
+                    "lambda_match=%.6f lambda_kl=%.6f lambda_unif=%.6f uniformity_t=%.3f enable_aux=%s aux_warmup=%d",
+                    args.pcme_mode,
                     args.pcme_train_samples, args.pcme_eval_samples, args.pcme_alpha_init, args.pcme_beta_init,
-                    args.pcme_lambda_match, args.pcme_lambda_kl, args.pcme_lambda_unif, args.pcme_uniformity_t)
+                    args.pcme_lambda_match, args.pcme_lambda_kl, args.pcme_lambda_unif, args.pcme_uniformity_t,
+                    str(args.pcme_enable_aux_loss), args.pcme_aux_warmup_epochs)
+        logger.info("Mix schedule: muse_target=%.3f warmup=%d ramp=%d | prob_target=%.3f warmup=%d ramp=%d",
+                    args.muse_mix_target, args.muse_warmup_epochs, args.muse_ramp_epochs,
+                    args.pcme_prob_mix_target, args.pcme_prob_warmup_epochs, args.pcme_prob_ramp_epochs)
+        logger.info("LR schedule: base=%.8f clip=%.8f new_modules=%.8f", args.lr, args.lr_clip, args.lr_new_modules)
     device, n_gpu = init_device(args, args.local_rank)
 
     tokenizer = ClipTokenizer()
@@ -674,9 +750,11 @@ def main():
         
         global_step = 0
         for epoch in range(resumed_epoch, args.epochs):
+            set_model_epoch(model, epoch)
             train_sampler.set_epoch(epoch)
             tr_loss, global_step = train_epoch(epoch, args, model, train_dataloader, device, n_gpu, optimizer,
                                                scheduler, global_step, local_rank=args.local_rank)
+            prob_mix_target_epoch = args.pcme_prob_mix_target
             if args.local_rank == 0:
                 logger.info("Epoch %d/%s Finished, Train Loss: %f", epoch + 1, args.epochs, tr_loss)
 
@@ -687,10 +765,25 @@ def main():
                 # R1 = eval_epoch(args, model, val_dataloader, device, n_gpu)
 
                 R1 = eval_epoch(args, model, test_dataloader, device, n_gpu)
+                if (epoch + 1) == 4 and R1 < 35.0 and args.pcme_prob_mix_target > 0.2:
+                    prob_mix_target_epoch = 0.2
+                    logger.warning(
+                        "Epoch 4 R1=%.4f is below 35.0, reduce pcme_prob_mix_target to %.3f for remaining epochs.",
+                        R1, prob_mix_target_epoch
+                    )
                 if best_score <= R1:
                     best_score = R1
                     best_output_model_file = output_model_file
                 logger.info("The best model is: {}, the R1 is: {:.4f}".format(best_output_model_file, best_score))
+
+            prob_mix_target_tensor = torch.tensor([prob_mix_target_epoch], dtype=torch.float32, device=device)
+            torch.distributed.broadcast(prob_mix_target_tensor, src=0)
+            synced_prob_mix_target = float(prob_mix_target_tensor.item())
+            if synced_prob_mix_target != args.pcme_prob_mix_target:
+                args.pcme_prob_mix_target = synced_prob_mix_target
+                model_ref = model.module if hasattr(model, 'module') else model
+                if hasattr(model_ref, "task_config"):
+                    model_ref.task_config.pcme_prob_mix_target = synced_prob_mix_target
 
         ## Uncomment if want to test on the best checkpoint
         # if args.local_rank == 0:
@@ -698,6 +791,7 @@ def main():
         #     eval_epoch(args, model, test_dataloader, device, n_gpu)
 
     elif args.do_eval:
+        set_model_epoch(model, max(args.epochs - 1, 0))
         if args.local_rank == 0:
             eval_epoch(args, model, test_dataloader, device, n_gpu)
 
