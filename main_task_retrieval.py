@@ -459,6 +459,15 @@ def eval_epoch(args, model, test_dataloader, device, n_gpu):
     else:
         model = model.to(device)
 
+    # DDP (torchrun one-process-per-GPU): avoid rank0 stealing other ranks' GPUs in eval
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if n_gpu > 1 and args.local_rank == 0:
+            logger.info(
+                "DDP eval detected: force single-GPU eval on local device to avoid cross-rank OOM (n_gpu %d -> 1).",
+                n_gpu
+            )
+        n_gpu = 1
+
     # #################################################################
     ## below variables are used to multi-sentences retrieval
     # multi_sentence_: important tag for eval
