@@ -599,14 +599,16 @@ class CLIP4Clip(CLIP4ClipPreTrainedModel):
         video_embed_base = self._mean_pooling_for_similarity_visual(frame_cls_tokens, video_mask)
         video_embed_base = video_embed_base / video_embed_base.norm(dim=-1, keepdim=True)
 
-        visual_output_muse = self._muse_lite_fuse_visual_tokens(visual_output, video_mask)
-        visual_output_muse = visual_output_muse / visual_output_muse.norm(dim=-1, keepdim=True)
-        video_embed_muse = self._mean_pooling_for_similarity_visual(visual_output_muse, video_mask)
-        video_embed_muse = video_embed_muse / video_embed_muse.norm(dim=-1, keepdim=True)
-
         muse_mix = self._get_muse_mix()
-        video_embed = (1.0 - muse_mix) * video_embed_base + muse_mix * video_embed_muse
-        video_embed = video_embed / video_embed.norm(dim=-1, keepdim=True)
+        if muse_mix <= 0.0:
+            video_embed = video_embed_base
+        else:
+            visual_output_muse = self._muse_lite_fuse_visual_tokens(visual_output, video_mask)
+            visual_output_muse = visual_output_muse / visual_output_muse.norm(dim=-1, keepdim=True)
+            video_embed_muse = self._mean_pooling_for_similarity_visual(visual_output_muse, video_mask)
+            video_embed_muse = video_embed_muse / video_embed_muse.norm(dim=-1, keepdim=True)
+            video_embed = (1.0 - muse_mix) * video_embed_base + muse_mix * video_embed_muse
+            video_embed = video_embed / video_embed.norm(dim=-1, keepdim=True)
 
         text_embed = sequence_output.squeeze(1)
         text_embed = text_embed / text_embed.norm(dim=-1, keepdim=True)

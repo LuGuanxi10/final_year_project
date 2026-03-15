@@ -64,6 +64,8 @@ def get_args(description='CLIP4Clip on Retrieval Task'):
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--cross_model", default="cross-base", type=str, required=False, help="Cross module")
     parser.add_argument("--init_model", default=None, type=str, required=False, help="Initial model.")
+    parser.add_argument("--init_state_scope", default="full", type=str, choices=["full", "clip_only"],
+                        help="Scope of weights restored from init_model.")
     parser.add_argument("--resume_model", default=None, type=str, required=False, help="Resume train model.")
     parser.add_argument("--do_lower_case", action='store_true', help="Set this flag if you are using an uncased model.")
     parser.add_argument("--warmup_proportion", default=0.1, type=float,
@@ -136,6 +138,8 @@ def get_args(description='CLIP4Clip on Retrieval Task'):
     parser.add_argument('--pcme_logsigma_bias_init', type=float, default=-5.0, help='Initial bias for log sigma projection.')
     parser.add_argument('--lr_clip', type=float, default=5e-6, help='Learning rate for clip.* parameters.')
     parser.add_argument('--lr_new_modules', type=float, default=3e-4, help='Learning rate for MUSE/PCME modules.')
+    parser.add_argument('--train_scope', type=str, default="all", choices=["all", "clip_only"],
+                        help='Subset of model parameters to optimize.')
 
     parser.add_argument("--pretrained_clip_name", default="ViT-B/32", type=str, help="Choose a CLIP version")
 
@@ -253,8 +257,24 @@ def init_device(args, local_rank):
 
 def init_model(args, device, n_gpu, local_rank):
 
+    def _extract_model_state_dict(checkpoint_or_state):
+        if checkpoint_or_state is None:
+            return None
+        if isinstance(checkpoint_or_state, dict) and 'model_state_dict' in checkpoint_or_state:
+            return checkpoint_or_state['model_state_dict']
+        return checkpoint_or_state
+
     if args.init_model:
-        model_state_dict = torch.load(args.init_model, map_location='cpu')
+        loaded_state = torch.load(args.init_model, map_location='cpu')
+        model_state_dict = _extract_model_state_dict(loaded_state)
+        if args.init_state_scope == "clip_only":
+            model_state_dict = {
+                k: v for k, v in model_state_dict.items()
+                if k.startswith("clip.")
+            }
+        if args.local_rank == 0:
+            logger.info("Init model loaded from %s with scope=%s (%d tensors)",
+                        args.init_model, args.init_state_scope, len(model_state_dict))
     else:
         model_state_dict = None
 
@@ -265,6 +285,19 @@ def init_model(args, device, n_gpu, local_rank):
     model.to(device)
 
     return model
+
+def apply_train_scope(args, model):
+    model_ref = model.module if hasattr(model, 'module') else model
+    if args.train_scope == "clip_only":
+        for name, param in model_ref.named_parameters():
+            param.requires_grad = name.startswith("clip.")
+        if args.local_rank == 0:
+            logger.info("Train scope clip_only enabled: only clip.* parameters remain trainable.")
+
+def _set_optimizer_group_lr(optimizer, group_name, new_lr):
+    for group in optimizer.param_groups:
+        if group.get("group_name") == group_name:
+            group['lr'] = new_lr
 
 def prep_optimizer(args, model, num_train_optimization_steps, device, n_gpu, local_rank, coef_lr=1.):
 
@@ -282,24 +315,33 @@ def prep_optimizer(args, model, num_train_optimization_steps, device, n_gpu, loc
             return args.lr_new_modules
         return args.lr
 
+    def _group_name(param_name):
+        if param_name.startswith("clip."):
+            return "clip"
+        if any(marker in param_name for marker in new_module_markers):
+            return "new_modules"
+        return "other"
+
     grouped_params = {}
     for n, p in param_optimizer:
         if not p.requires_grad:
             continue
         decay_key = "no_decay" if any(nd in n for nd in no_decay) else "decay"
         lr = _group_lr(n)
-        key = (lr, decay_key)
+        group_name = _group_name(n)
+        key = (group_name, lr, decay_key)
         grouped_params.setdefault(key, []).append(p)
 
     weight_decay = 0.2
     optimizer_grouped_parameters = []
-    for (lr, decay_key), params in sorted(grouped_params.items(), key=lambda kv: (kv[0][0], kv[0][1])):
+    for (group_name, lr, decay_key), params in sorted(grouped_params.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2])):
         if len(params) == 0:
             continue
         optimizer_grouped_parameters.append({
             'params': params,
             'weight_decay': 0.0 if decay_key == "no_decay" else weight_decay,
-            'lr': lr
+            'lr': lr,
+            'group_name': group_name,
         })
 
     scheduler = None
@@ -620,6 +662,8 @@ def main():
     if args.local_rank == 0:
         logger.info("Effective retrieval header: %s (loose_type=%s, max_frames=%d)",
                     args.sim_header, args.loose_type, args.max_frames)
+        logger.info("Init/train scope: init_state_scope=%s train_scope=%s",
+                    args.init_state_scope, args.train_scope)
         logger.info("PCME config: mode=%s train_samples=%d eval_samples=%d alpha_init=%.4f beta_init=%.4f "
                     "lambda_match=%.6f lambda_kl=%.6f lambda_unif=%.6f uniformity_t=%.3f enable_aux=%s aux_warmup=%d",
                     args.pcme_mode,
@@ -657,6 +701,8 @@ def main():
             else:
                 # paramenters which < freeze_layer_num will be freezed
                 param.requires_grad = False
+
+    apply_train_scope(args, model)
 
     ## ####################################
     # dataloader loading
@@ -764,6 +810,7 @@ def main():
             tr_loss, global_step = train_epoch(epoch, args, model, train_dataloader, device, n_gpu, optimizer,
                                                scheduler, global_step, local_rank=args.local_rank)
             prob_mix_target_epoch = args.pcme_prob_mix_target
+            clip_lr_epoch = args.lr_clip
             if args.local_rank == 0:
                 logger.info("Epoch %d/%s Finished, Train Loss: %f", epoch + 1, args.epochs, tr_loss)
 
@@ -774,6 +821,12 @@ def main():
                 # R1 = eval_epoch(args, model, val_dataloader, device, n_gpu)
 
                 R1 = eval_epoch(args, model, test_dataloader, device, n_gpu)
+                if (epoch + 1) == 2 and args.train_scope == "clip_only" and R1 < 36.0 and args.lr_clip < 5e-6:
+                    clip_lr_epoch = 5e-6
+                    logger.warning(
+                        "Epoch 2 R1=%.4f is below 36.0, increase lr_clip to %.8f for remaining epochs.",
+                        R1, clip_lr_epoch
+                    )
                 if (epoch + 1) == 4 and R1 < 35.0 and args.pcme_prob_mix_target > 0.2:
                     prob_mix_target_epoch = 0.2
                     logger.warning(
@@ -784,6 +837,13 @@ def main():
                     best_score = R1
                     best_output_model_file = output_model_file
                 logger.info("The best model is: {}, the R1 is: {:.4f}".format(best_output_model_file, best_score))
+
+            clip_lr_tensor = torch.tensor([clip_lr_epoch], dtype=torch.float32, device=device)
+            torch.distributed.broadcast(clip_lr_tensor, src=0)
+            synced_clip_lr = float(clip_lr_tensor.item())
+            if synced_clip_lr != args.lr_clip:
+                args.lr_clip = synced_clip_lr
+                _set_optimizer_group_lr(optimizer, "clip", synced_clip_lr)
 
             prob_mix_target_tensor = torch.tensor([prob_mix_target_epoch], dtype=torch.float32, device=device)
             torch.distributed.broadcast(prob_mix_target_tensor, src=0)
